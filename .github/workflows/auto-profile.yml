@@ -24,6 +24,11 @@ jobs:
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
+          # Normalize any partial/previous profile patch before applying the final version.
+          s = s.replace('function renderGoogle({', 'function renderGoogle(){')
+          set_edit = "function setSettingsEdit(on){document.querySelectorAll('.profileEditForm input').forEach(i=>i.disabled=!on);$('editSettingsBtn').classList.toggle('hidden',on);$('saveSettingsBtn').classList.toggle('hidden',!on);$('cancelSettingsBtn').classList.toggle('hidden',!on);if(!on)renderOwnerData()}"
+          s = re.sub(re.escape(set_edit) + r'\n' + re.escape(set_edit), set_edit, s)
+
           old_section = re.search(r'<section id="settings" class="panel">.*?</section>\n', s, re.S)
           if not old_section:
               raise SystemExit('settings section not found')
@@ -45,9 +50,6 @@ jobs:
           if not save_re.search(s):
               raise SystemExit('saveSettings target not found')
           s = save_re.sub(new_save, s, count=1)
-
-          # Google Business data is already stored by the existing Auto Setup flow.
-          # The profile UI reads google_phone/google_rating directly, so no manual re-entry is required.
 
           handlers_re = re.compile(r"\$\(\'loginBtn\'\)\.onclick=signIn;.*?\$\(\'leadForm\'\)\.onsubmit=submitLead;", re.S)
           new_handlers = "$('loginBtn').onclick=signIn;$('editSettingsBtn').onclick=()=>setSettingsEdit(true);$('cancelSettingsBtn').onclick=()=>setSettingsEdit(false);$('appointmentBtn').onclick=()=>{$('leadForm').scrollIntoView({behavior:'smooth'});setTimeout(()=>$('leadName').focus(),250)};$('newLeadBtn').onclick=()=>{switchTab('demo');setTimeout(()=>$('leadForm').scrollIntoView({behavior:'smooth'}),100)};$('leadForm').onsubmit=submitLead;"
