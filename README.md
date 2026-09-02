@@ -10,6 +10,7 @@ A standalone product build for a conversion-focused salon website and lead manag
 - Local lead pipeline
 - Lead status updates
 - Automatic Google Business profile population via STore Places Discovery API
+- Existing website discovery and business information import
 - Salon profile with manual correction only when required
 - Mobile-first responsive UI
 - No dependency on the existing STall Store Automation repository
@@ -28,5 +29,6 @@ Planned next layers:
 6. Appointment workflow
 7. Offer management
 8. Google review workflow
-9. Deployment template for each salon
-10. Subscription/payment layer
+9. Social media publishing workflow
+10. Deployment template for each salon
+11. Subscription/payment layer
