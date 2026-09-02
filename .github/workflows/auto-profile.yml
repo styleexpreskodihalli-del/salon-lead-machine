@@ -26,6 +26,7 @@ jobs:
 
           # Normalize any partial/previous profile patch before applying the final version.
           s = s.replace('function renderGoogle({', 'function renderGoogle(){')
+          s = s.replace('function renderGoogle(){{', 'function renderGoogle(){')
           set_edit = "function setSettingsEdit(on){document.querySelectorAll('.profileEditForm input').forEach(i=>i.disabled=!on);$('editSettingsBtn').classList.toggle('hidden',on);$('saveSettingsBtn').classList.toggle('hidden',!on);$('cancelSettingsBtn').classList.toggle('hidden',!on);if(!on)renderOwnerData()}"
           s = re.sub(re.escape(set_edit) + r'\n' + re.escape(set_edit), set_edit, s)
 
@@ -39,7 +40,7 @@ jobs:
           if '.profileEditForm.hidden' not in s:
               s = s.replace(marker, marker + '.profileEditForm.hidden{display:none}.profileSummaryGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.profileSummaryItem{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}.profileSummaryItem strong{display:block;font-size:16px}.profileSummaryItem span{display:block;color:var(--muted);font-size:12px;margin-top:4px}@media(max-width:850px){.profileSummaryGrid{grid-template-columns:1fr}}')
 
-          render_re = re.compile(r'function renderOwnerData\(\)\{.*?\}\nfunction renderGoogle\(\)', re.S)
+          render_re = re.compile(r'function renderOwnerData\(\)\{.*?\}\nfunction renderGoogle\(\)\{', re.S)
           new_render = """function renderOwnerData(){if(!salon)return;$(\'salonName\').value=salon.name||\'\';$(\'salonCity\').value=salon.city||\'\';$(\'salonWhatsapp\').value=salon.whatsapp||salon.google_phone||\'\';$(\'salonRating\').value=salon.google_rating||salon.rating||0;$(\'salonTagline\').value=salon.tagline||\'\';$(\'heroTitle\').textContent=(salon.name||\'Your salon\')+\' — turn visitors into paying customers.\';$(\'heroText\').textContent=salon.tagline||\'A professional salon page with services, offers, enquiry capture and fast follow-up.\';renderProfileSummary();renderGoogle();renderCatalog()}\nfunction renderProfileSummary(){if(!salon)return;const connected=!!salon.google_place_id;const rating=salon.google_rating||salon.rating||0;const count=salon.google_review_count||0;$(\'profileSummary\').innerHTML=connected?\'<div class="profileSummaryGrid"><div class="profileSummaryItem"><strong>\'+esc(salon.name||\'—\')+\'</strong><span>Business name</span></div><div class="profileSummaryItem"><strong>\'+esc(salon.city||\'—\')+\'</strong><span>City</span></div><div class="profileSummaryItem"><strong>\'+esc(salon.google_phone||salon.whatsapp||\'—\')+\'</strong><span>Phone / WhatsApp</span></div><div class="profileSummaryItem"><strong>\'+(rating?Number(rating).toFixed(1)+\' ★\':\'—\')+\'</strong><span>Google rating · \'+count+\' reviews</span></div><div class="profileSummaryItem"><strong>\'+esc(salon.google_address||\'—\')+\'</strong><span>Address</span></div><div class="profileSummaryItem"><strong>\'+esc(salon.tagline||\'—\')+\'</strong><span>Tagline</span></div></div>\':\'<div class="muted">Connect your Google Business listing in Auto Setup to populate this profile automatically.</div>\'}\nfunction renderGoogle(){"""
           if not render_re.search(s):
               raise SystemExit('renderOwnerData target not found')
