@@ -9,7 +9,8 @@ A standalone product build for a conversion-focused salon website and lead manag
 - Lead capture form
 - Local lead pipeline
 - Lead status updates
-- Salon setup screen
+- Automatic Google Business profile population via STore Places Discovery API
+- Salon profile with manual correction only when required
 - Mobile-first responsive UI
 - No dependency on the existing STall Store Automation repository
 
