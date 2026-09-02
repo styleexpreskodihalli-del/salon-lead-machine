@@ -24,7 +24,6 @@ jobs:
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          # Normalize any partial/previous profile patch before applying the final version.
           s = s.replace('function renderGoogle({', 'function renderGoogle(){')
           s = s.replace('function renderGoogle(){{', 'function renderGoogle(){')
           set_edit = "function setSettingsEdit(on){document.querySelectorAll('.profileEditForm input').forEach(i=>i.disabled=!on);$('editSettingsBtn').classList.toggle('hidden',on);$('saveSettingsBtn').classList.toggle('hidden',!on);$('cancelSettingsBtn').classList.toggle('hidden',!on);if(!on)renderOwnerData()}"
@@ -37,28 +36,39 @@ jobs:
           s = s[:old_section.start()] + new_section + s[old_section.end():]
 
           marker = '.googleBox{background:#f8faf8;border:1px solid var(--line);border-radius:16px;padding:16px}'
-          if '.profileEditForm.hidden' not in s:
-              s = s.replace(marker, marker + '.profileEditForm.hidden{display:none}.profileSummaryGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.profileSummaryItem{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}.profileSummaryItem strong{display:block;font-size:16px}.profileSummaryItem span{display:block;color:var(--muted);font-size:12px;margin-top:4px}@media(max-width:850px){.profileSummaryGrid{grid-template-columns:1fr}}')
+          css = '.profileEditForm.hidden{display:none}.profileSummaryGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.profileSummaryItem{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}.profileSummaryItem strong{display:block;font-size:16px}.profileSummaryItem span{display:block;color:var(--muted);font-size:12px;margin-top:4px}.websiteDiscovery{margin-top:16px}.websiteGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.websiteItem{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}.websiteItem strong{display:block}.websiteItem span{display:block;color:var(--muted);font-size:12px;margin-top:4px}.websitePills{display:flex;gap:7px;flex-wrap:wrap}.websitePill{background:var(--brand2);color:var(--brand);padding:6px 9px;border-radius:999px;font-size:12px;font-weight:800}@media(max-width:850px){.profileSummaryGrid,.websiteGrid{grid-template-columns:1fr}}'
+          if '.websiteDiscovery{' not in s: s = s.replace(marker, marker + css)
 
-          render_re = re.compile(r'function renderOwnerData\(\)\{.*?\}\nfunction renderGoogle\(\)\{', re.S)
-          new_render = """function renderOwnerData(){if(!salon)return;$(\'salonName\').value=salon.name||\'\';$(\'salonCity\').value=salon.city||\'\';$(\'salonWhatsapp\').value=salon.whatsapp||salon.google_phone||\'\';$(\'salonRating\').value=salon.google_rating||salon.rating||0;$(\'salonTagline\').value=salon.tagline||\'\';$(\'heroTitle\').textContent=(salon.name||\'Your salon\')+\' — turn visitors into paying customers.\';$(\'heroText\').textContent=salon.tagline||\'A professional salon page with services, offers, enquiry capture and fast follow-up.\';renderProfileSummary();renderGoogle();renderCatalog()}\nfunction renderProfileSummary(){if(!salon)return;const connected=!!salon.google_place_id;const rating=salon.google_rating||salon.rating||0;const count=salon.google_review_count||0;$(\'profileSummary\').innerHTML=connected?\'<div class="profileSummaryGrid"><div class="profileSummaryItem"><strong>\'+esc(salon.name||\'—\')+\'</strong><span>Business name</span></div><div class="profileSummaryItem"><strong>\'+esc(salon.city||\'—\')+\'</strong><span>City</span></div><div class="profileSummaryItem"><strong>\'+esc(salon.google_phone||salon.whatsapp||\'—\')+\'</strong><span>Phone / WhatsApp</span></div><div class="profileSummaryItem"><strong>\'+(rating?Number(rating).toFixed(1)+\' ★\':\'—\')+\'</strong><span>Google rating · \'+count+\' reviews</span></div><div class="profileSummaryItem"><strong>\'+esc(salon.google_address||\'—\')+\'</strong><span>Address</span></div><div class="profileSummaryItem"><strong>\'+esc(salon.tagline||\'—\')+\'</strong><span>Tagline</span></div></div>\':\'<div class="muted">Connect your Google Business listing in Auto Setup to populate this profile automatically.</div>\'}\nfunction renderGoogle(){"""
-          if not render_re.search(s):
-              raise SystemExit('renderOwnerData target not found')
-          s = render_re.sub(new_render, s, count=1)
+          anchor = '<div class="actions"><button id="syncGoogleBtn" class="secondary" type="button">Sync Google</button></div>'
+          website = '''<div class="websiteDiscovery card"><div class="sectionHead"><div><h3>Website Business Discovery</h3><div class="muted">If your Google Business listing has a website, we can scan its public business information automatically.</div></div><span class="badge">Website detected</span></div><div class="formGrid"><div class="field full"><label>Website URL</label><input id="websiteUrl" placeholder="https://yourbusiness.com"></div></div><div class="actions"><button id="scanWebsiteBtn" class="primary" type="button">Scan Website</button><span id="websiteStatus" class="notice"></span></div><div id="websiteSummary" class="googleBox">No website has been analyzed yet.</div></div>'''
+          if 'website-business-discovery' not in s:
+              if anchor not in s: raise SystemExit('sync anchor not found')
+              s = s.replace(anchor, anchor + website, 1)
+
+          before = 'function renderGoogle(){'
+          if 'async function scanBusinessWebsite' not in s:
+              js = r'''async function scanBusinessWebsite(){if(!salon)return;let url=$('websiteUrl').value.trim()||salon.google_website_url||salon.website_url||'';if(!url){toast($('websiteStatus'),'No website URL found.');return}$('websiteStatus').textContent='Scanning website…';$('websiteStatus').classList.add('show');try{const {data,error}=await supabase.functions.invoke('website-business-discovery',{body:{url}});if(error)throw error;if(data?.error)throw new Error(data.error);const body={website_url:data.website_url||url,website_title:data.website_title||'',website_description:data.website_description||'',website_email:data.website_email||'',website_hours:data.website_hours||'',website_services:data.website_services||[],website_offers:data.website_offers||[],website_social_links:data.website_social_links||[],website_logo_url:data.website_logo_url||'',website_image_urls:data.website_image_urls||[],website_last_scanned_at:new Date().toISOString()};const rows=await api('/rest/v1/salons?id=eq.'+salon.id,{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(body)});salon=rows[0]||Object.assign(salon,body);renderWebsiteSummary();renderOwnerData();toast($('websiteStatus'),'Website information imported successfully.')}catch(e){$('websiteStatus').textContent=e.message||'Website scan failed.';$('websiteStatus').classList.add('show');$('websiteStatus').classList.add('error')}}
+function renderWebsiteSummary(){if(!salon)return;const url=salon.website_url||salon.google_website_url||'';if(!url){$('websiteSummary').innerHTML='<div class="muted">No website was found on the Google Business listing. You can enter one above if the business has a website.</div>';return}$('websiteUrl').value=url;const services=Array.isArray(salon.website_services)?salon.website_services:[];const offers=Array.isArray(salon.website_offers)?salon.website_offers:[];const socials=Array.isArray(salon.website_social_links)?salon.website_social_links:[];$('websiteSummary').innerHTML='<div class="websiteGrid"><div class="websiteItem"><strong>'+esc(salon.website_title||salon.name||'Website')+'</strong><span>Website title</span></div><div class="websiteItem"><strong>'+esc(salon.website_description||'—')+'</strong><span>Description</span></div><div class="websiteItem"><strong>'+esc(salon.website_email||'—')+'</strong><span>Email</span></div><div class="websiteItem"><strong>'+esc(salon.website_hours||'—')+'</strong><span>Opening hours</span></div><div class="websiteItem"><strong>'+esc(String(services.length))+'</strong><span>Services detected</span></div><div class="websiteItem"><strong>'+esc(String(offers.length))+'</strong><span>Offers detected</span></div></div>'+(services.length?'<div style="margin-top:12px"><b>Services</b><div class="websitePills" style="margin-top:8px">'+services.slice(0,20).map(x=>'<span class="websitePill">'+esc(x)+'</span>').join('')+'</div></div>':'')+(socials.length?'<div style="margin-top:12px"><b>Social links</b><div class="websitePills" style="margin-top:8px">'+socials.map(x=>'<span class="websitePill">'+esc(new URL(x).hostname.replace(/^www\./,''))+'</span>').join('')+'</div></div>':'')+'<div class="muted" style="margin-top:12px">Last scanned: '+(salon.website_last_scanned_at?new Date(salon.website_last_scanned_at).toLocaleString():'Not scanned yet')+'</div>'}
+'''
+              if before not in s: raise SystemExit('renderGoogle marker not found')
+              s = s.replace(before, js + before, 1)
+
+          s = s.replace('renderProfileSummary();renderGoogle();renderCatalog()', 'renderProfileSummary();renderWebsiteSummary();renderGoogle();renderCatalog()', 1)
+          handler = "$('loginBtn').onclick=signIn;"
+          if "$('scanWebsiteBtn').onclick=scanBusinessWebsite;" not in s:
+              s = s.replace(handler, handler + "$('scanWebsiteBtn').onclick=scanBusinessWebsite;", 1)
 
           save_re = re.compile(r'async function saveSettings\(\).*?(?=function renderOwnerData)', re.S)
           new_save = """async function saveSettings(){if(!salon)return;try{const body={name:$(\'salonName\').value.trim(),city:$(\'salonCity\').value.trim(),whatsapp:$(\'salonWhatsapp\').value.trim(),rating:Number($(\'salonRating\').value||0),tagline:$(\'salonTagline\').value.trim(),updated_at:new Date().toISOString()};const rows=await api(\'/rest/v1/salons?id=eq.\'+salon.id,{method:\'PATCH\',headers:{\'Prefer\':\'return=representation\'},body:JSON.stringify(body)});salon=rows[0]||Object.assign(salon,body);setSettingsEdit(false);toast($(\'settingsNotice\'),\'Corrections saved.\')}catch(e){alert(e.message)}}\n"""
-          if not save_re.search(s):
-              raise SystemExit('saveSettings target not found')
+          if not save_re.search(s): raise SystemExit('saveSettings target not found')
           s = save_re.sub(new_save, s, count=1)
 
-          handlers_re = re.compile(r"\$\(\'loginBtn\'\)\.onclick=signIn;.*?\$\(\'leadForm\'\)\.onsubmit=submitLead;", re.S)
-          new_handlers = "$('loginBtn').onclick=signIn;$('editSettingsBtn').onclick=()=>setSettingsEdit(true);$('cancelSettingsBtn').onclick=()=>setSettingsEdit(false);$('appointmentBtn').onclick=()=>{$('leadForm').scrollIntoView({behavior:'smooth'});setTimeout(()=>$('leadName').focus(),250)};$('newLeadBtn').onclick=()=>{switchTab('demo');setTimeout(()=>$('leadForm').scrollIntoView({behavior:'smooth'}),100)};$('leadForm').onsubmit=submitLead;"
-          if not handlers_re.search(s):
-              raise SystemExit('handler target not found')
+          handlers_re = re.compile(r"\$\('loginBtn'\)\.onclick=signIn;.*?\$\('leadForm'\)\.onsubmit=submitLead;", re.S)
+          new_handlers = "$('loginBtn').onclick=signIn;$('editSettingsBtn').onclick=()=>setSettingsEdit(true);$('cancelSettingsBtn').onclick=()=>setSettingsEdit(false);$('appointmentBtn').onclick=()=>{$('leadForm').scrollIntoView({behavior:'smooth'});setTimeout(()=>$('leadName').focus(),250)};$('newLeadBtn').onclick=()=>{switchTab('demo');setTimeout(()=>$('leadForm').scrollIntoView({behavior:'smooth'}),100)};$('scanWebsiteBtn').onclick=scanBusinessWebsite;$('leadForm').onsubmit=submitLead;"
+          if not handlers_re.search(s): raise SystemExit('handler target not found')
           s = handlers_re.sub(new_handlers, s, count=1)
 
-          s = s.replace('Salon Lead Machine · Standalone product · v1.1','Salon Lead Machine · Standalone product · v1.2')
+          s = s.replace('Salon Lead Machine · Standalone product · v1.1','Salon Lead Machine · Standalone product · v1.3')
           p.write_text(s, encoding='utf-8')
           PY
 
@@ -70,7 +80,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Make salon profile auto-populated [skip auto-profile]"
+            git commit -m "Add website business discovery [skip auto-profile]"
             git fetch origin main
             git rebase origin/main
             git push origin HEAD:main
