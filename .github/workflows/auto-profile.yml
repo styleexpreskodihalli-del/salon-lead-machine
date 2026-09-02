@@ -71,5 +71,7 @@ jobs:
             echo "No changes needed"
           else
             git commit -m "Make salon profile auto-populated [skip auto-profile]"
-            git push
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
           fi
