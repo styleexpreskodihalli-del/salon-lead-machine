@@ -46,11 +46,8 @@ jobs:
               raise SystemExit('saveSettings target not found')
           s = save_re.sub(new_save, s, count=1)
 
-          body_re = re.compile(r'const body=\{name:p\.displayName\?\.text\|\|salon\.name.*?onboarding_completed:true\};', re.S)
-          new_body = "const autoName=p.displayName?.text||salon.name;const autoCity=(p.formattedAddress||'').split(',').slice(-2,-1)[0]?.trim()||salon.city;const autoPhone=p.nationalPhoneNumber||salon.google_phone||salon.whatsapp||'';const generatedTagline=(salon.tagline&&salon.tagline!=='Your salon. Your customers. Your growth.')?salon.tagline:(autoCity?autoName+' — professional salon services in '+autoCity:autoName+' — professional salon services');const body={name:autoName,city:autoCity,whatsapp:autoPhone,rating:p.rating||0,tagline:generatedTagline,google_place_id:p.id||placeId,google_maps_url:p.googleMapsUri||'',google_website_url:p.websiteUri||'',google_phone:autoPhone,google_address:p.formattedAddress||'',google_rating:p.rating||0,google_review_count:p.userRatingCount||0,google_reviews_url:p.googleMapsUri||'',google_last_synced_at:new Date().toISOString(),onboarding_completed:true};"
-          if not body_re.search(s):
-              raise SystemExit('selectBusiness body target not found')
-          s = body_re.sub(new_body, s, count=1)
+          # Google Business data is already stored by the existing Auto Setup flow.
+          # The profile UI reads google_phone/google_rating directly, so no manual re-entry is required.
 
           handlers_re = re.compile(r"\$\(\'loginBtn\'\)\.onclick=signIn;.*?\$\(\'leadForm\'\)\.onsubmit=submitLead;", re.S)
           new_handlers = "$('loginBtn').onclick=signIn;$('editSettingsBtn').onclick=()=>setSettingsEdit(true);$('cancelSettingsBtn').onclick=()=>setSettingsEdit(false);$('appointmentBtn').onclick=()=>{$('leadForm').scrollIntoView({behavior:'smooth'});setTimeout(()=>$('leadName').focus(),250)};$('newLeadBtn').onclick=()=>{switchTab('demo');setTimeout(()=>$('leadForm').scrollIntoView({behavior:'smooth'}),100)};$('leadForm').onsubmit=submitLead;"
