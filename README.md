@@ -32,3 +32,7 @@ Planned next layers:
 9. Social media publishing workflow
 10. Deployment template for each salon
 11. Subscription/payment layer
+
+## Build validation
+
+Website discovery UI build trigger added for validation.
