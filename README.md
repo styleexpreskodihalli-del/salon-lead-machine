@@ -35,4 +35,4 @@ Planned next layers:
 
 ## Build validation
 
-Website discovery UI build trigger added for validation.
+Profile and website discovery build stabilization in progress.
