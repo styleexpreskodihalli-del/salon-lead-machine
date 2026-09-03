@@ -1,4 +1,4 @@
-name: Route Bookings and Customers workspace
+name: Repair Salon Lead Machine auth and workspace
 
 on:
   push:
@@ -10,27 +10,36 @@ permissions:
   contents: write
 
 jobs:
-  route_bookings:
+  repair_index:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Route navigation
+      - name: Repair index script
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
-          p=Path('index.html')
-          s=p.read_text()
-          old='<button data-tab="leads" type="button">Bookings &amp; Customers</button>'
-          new='<button data-tab="leads" type="button" onclick="location.href=\'bookings.html\'">Bookings &amp; Customers</button>'
-          if old in s: s=s.replace(old,new,1)
+          p = Path('index.html')
+          s = p.read_text()
+
+          # The previous Customer 360 patch accidentally duplicated the function tail,
+          # leaving index.html with invalid JavaScript. Replace the entire function safely.
+          start = s.find('function openCustomer360(')
+          end = s.find('function renderLeads()', start)
+          if start >= 0 and end > start:
+              fixed = "function openCustomer360(customerId,phone,name){if(!salon||(!customerId&&!phone)){alert('Customer record is not available yet.');return}const qs=new URLSearchParams({salon:salon.id,customer:customerId||'',phone:phone||'',name:name||''});location.href='customer360.html?'+qs.toString()}\n"
+              s = s[:start] + fixed + s[end:]
+
+          # Keep the Google sign-in action explicit and robust.
+          s = s.replace("function signIn(){toast($('authMessage'),'Opening Google sign-in…');window.location.assign(SUPA+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(REDIRECT))}", "function signIn(){const msg=$('authMessage');if(msg)toast(msg,'Opening Google sign-in…');const redirect=window.location.origin+window.location.pathname;const url=SUPA+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(redirect);window.location.href=url}")
+
           p.write_text(s)
           PY
-      - name: Commit navigation change
+      - name: Commit repair
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Route bookings navigation to unified workspace'
+          git commit -m 'Repair Google sign-in and Customer 360 script'
           git push
