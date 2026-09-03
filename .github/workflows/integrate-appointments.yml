@@ -23,11 +23,7 @@ jobs:
 
           p = Path('index.html')
           s = p.read_text()
-
-          # Remove the previous snapshot loader, which depended on window.salon and
-          # window.supabase globals that are not guaranteed to exist.
           s = re.sub(r'<script>\(function\(\)\{\s*const waitForBookingSnapshot=.*?</script>', '', s, count=1, flags=re.S)
-
           script = r'''<script>(function(){
             async function loadBookingSnapshot(){
               const box=document.getElementById('bookingSnapshotList');
@@ -35,59 +31,70 @@ jobs:
               let session=null;
               try{session=JSON.parse(localStorage.getItem('slm_session')||'null')}catch(e){}
               if(!session||!session.access_token){setTimeout(loadBookingSnapshot,1200);return}
-
               const token=session.access_token;
               let uid=session.user&&session.user.id;
-              if(!uid){
-                try{
-                  const part=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
-                  uid=JSON.parse(atob(part.padEnd(part.length+(4-part.length%4))%4)).sub;
-                }catch(e){}
-              }
+              if(!uid){try{const part=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');uid=JSON.parse(atob(part.padEnd(part.length+(4-part.length%4))%4)).sub}catch(e){}}
               if(!uid){box.querySelector('.bookingSnapshotRows').innerHTML='<div class="bookingSnapshotEmpty">Owner session is not ready yet.</div>';return}
-
               const BASE='https://dhiimviybpbggvuuzwfh.supabase.co/rest/v1/';
               const HEAD={'apikey':'sb_publishable_IOXACVkfe217drLmK0UCcA_ADmDLTg7','Authorization':'Bearer '+token};
               try{
                 const sr=await fetch(BASE+'salons?owner_id=eq.'+encodeURIComponent(uid)+'&select=id&limit=1',{headers:HEAD});
                 if(!sr.ok)throw new Error('salon lookup failed');
-                const salons=await sr.json();
-                const salonId=salons[0]&&salons[0].id;
-                if(!salonId)throw new Error('salon not found');
-
+                const salons=await sr.json();const salonId=salons[0]&&salons[0].id;if(!salonId)throw new Error('salon not found');
                 const ar=await fetch(BASE+'appointments?salon_id=eq.'+encodeURIComponent(salonId)+'&select=id,customer_name,customer_phone,service,appointment_date,appointment_time,status,source&order=appointment_date.asc,appointment_time.asc&limit=20',{headers:HEAD});
                 if(!ar.ok)throw new Error('booking lookup failed');
-                const rows=await ar.json();
-                const today=new Date().toLocaleDateString('en-CA');
-                const todayRows=rows.filter(x=>x.appointment_date===today);
-                const requested=rows.filter(x=>x.status==='Requested').length;
-                const confirmed=rows.filter(x=>x.status==='Confirmed').length;
-                const completed=rows.filter(x=>x.status==='Completed').length;
-                const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=String(val)};
-                set('statLeads',todayRows.length);set('statFollow',requested);set('statRate',confirmed);set('statConverted',completed);
-
-                const active=rows.filter(x=>x.status==='Requested'||x.status==='Confirmed');
-                const display=(active.length?active:rows.slice(-6)).slice(0,4);
+                const rows=await ar.json(),today=new Date().toLocaleDateString('en-CA');
+                const todayRows=rows.filter(x=>x.appointment_date===today),requested=rows.filter(x=>x.status==='Requested').length,confirmed=rows.filter(x=>x.status==='Confirmed').length,completed=rows.filter(x=>x.status==='Completed').length;
+                const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=String(val)};set('statLeads',todayRows.length);set('statFollow',requested);set('statRate',confirmed);set('statConverted',completed);
+                const active=rows.filter(x=>x.status==='Requested'||x.status==='Confirmed'),display=(active.length?active:rows.slice(-6)).slice(0,4);
                 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-                box.querySelector('.bookingSnapshotRows').innerHTML=display.length?display.map(x=>{
-                  const time=x.appointment_time?String(x.appointment_time).slice(0,5):'';
-                  return '<div class="bookingSnapshotRow"><div><div class="bookingSnapshotName">'+esc(x.customer_name||'Customer')+'</div><div class="bookingSnapshotMeta">'+esc(x.service||'Service')+' · '+esc(x.appointment_date||'—')+(time?' · '+esc(time):'')+(x.source?' · '+esc(x.source):'')+'</div></div><span class="bookingSnapshotStatus">'+esc(x.status||'Requested')+'</span></div>';
-                }).join(''):'<div class="bookingSnapshotEmpty">No bookings yet.</div>';
-              }catch(e){
-                box.querySelector('.bookingSnapshotRows').innerHTML='<div class="bookingSnapshotEmpty">Booking details unavailable right now.</div>';
-                console.error(e);
-              }
+                box.querySelector('.bookingSnapshotRows').innerHTML=display.length?display.map(x=>{const time=x.appointment_time?String(x.appointment_time).slice(0,5):'';return '<div class="bookingSnapshotRow"><div><div class="bookingSnapshotName">'+esc(x.customer_name||'Customer')+'</div><div class="bookingSnapshotMeta">'+esc(x.service||'Service')+' · '+esc(x.appointment_date||'—')+(time?' · '+esc(time):'')+(x.source?' · '+esc(x.source):'')+'</div></div><span class="bookingSnapshotStatus">'+esc(x.status||'Requested')+'</span></div>'}).join(''):'<div class="bookingSnapshotEmpty">No bookings yet.</div>';
+              }catch(e){box.querySelector('.bookingSnapshotRows').innerHTML='<div class="bookingSnapshotEmpty">Booking details unavailable right now.</div>';console.error(e)}
             }
             setTimeout(loadBookingSnapshot,500);
           })();</script>'''
           s=s.replace('</body>',script+'</body>',1)
           p.write_text(s)
           PY
+      - name: Fix visited and paid flow
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('bookings.html')
+          s = p.read_text()
+          start = s.find('async function changeStatus(')
+          end = s.find('async function createBooking(', start)
+          if start < 0 or end < 0:
+              raise SystemExit('Could not locate booking status function')
+          fixed = '''async function changeStatus(id,status){
+            const a=appointments.find(x=>x.id===id);if(!a)return;
+            if(status==='Completed'){
+              if(!a.customer_id){notify('This booking has no linked customer record.',true);return}
+              const amount=Number(prompt('Bill amount paid (₹):','0')||0);
+              if(!Number.isFinite(amount)||amount<0){notify('Please enter a valid bill amount.',true);return}
+              const discount=Number(prompt('Discount (₹):','0')||0);
+              if(!Number.isFinite(discount)||discount<0){notify('Please enter a valid discount amount.',true);return}
+              const staff=prompt('Stylist / staff name (optional):','')||'';
+              const notes=prompt('Visit note (optional):','')||'';
+              const rpc=await api('/rest/v1/rpc/mark_appointment_visited_paid',{method:'POST',body:JSON.stringify({p_appointment_id:a.id,p_amount:amount,p_discount:discount,p_staff_name:staff,p_notes:notes})});
+              if(!rpc?.success){notify('Could not complete this visit.',true);return}
+              await loadData();
+              notify(rpc.already_recorded?'This visit was already recorded. Booking is marked Completed / Paid.':'Visit completed. Bill, customer totals and loyalty updated.');
+              return;
+            }
+            await api('/rest/v1/appointments?id='+encodeURIComponent(id)+'&salon_id='+encodeURIComponent(salon.id),{method:'PATCH',body:JSON.stringify({status,updated_at:new Date().toISOString()})});
+            await loadData();notify('Booking updated to '+status+'.');
+          }
+          '''
+          s=s[:start]+fixed+s[end:]
+          p.write_text(s)
+          PY
       - name: Commit repair
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html
+          git add index.html bookings.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Fix owner booking snapshot loading'
+          git commit -m 'Fix visited and paid booking flow'
           git push
