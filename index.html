@@ -70,6 +70,14 @@ function renderCatalog(){
         offerBox.innerHTML=off.length?off.map(x=>'<div class="card offer"><span class="badge">Offer</span><h3>'+safe(x.title||x.name||'Special Offer')+'</h3>'+(x.description?'<p class="muted">'+safe(x.description)+'</p>':'')+(x.price!=null?'<div class="servicePrice">₹'+safe(Number(x.price).toLocaleString('en-IN'))+'</div>':'')+'</div>').join(''):'<div class="empty">No offers added yet.</div>';
       }
     }
+    function renderStats(){
+      const rows=Array.isArray(appointments)?appointments:[];
+      const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=String(val)};
+      set('dashTotal',rows.length);
+      set('dashNew',rows.filter(x=>x.status==='Requested').length);
+      set('dashContacted',rows.filter(x=>x.status==='Confirmed').length);
+      set('dashConverted',rows.filter(x=>x.status==='Completed').length);
+    }
     function renderBookingSnapshot(){
   const box=$('bookingSnapshotList');if(!box||!salon||publicMode)return;
   const pad=n=>String(n).padStart(2,'0');
