@@ -36,3 +36,7 @@ Planned next layers:
 ## Build validation
 
 Profile and website discovery build stabilization in progress.
+
+## Appointment workflow
+
+Owner appointment management is integrated into the main application navigation and opens the salon-specific appointment manager for the signed-in salon.
