@@ -15,84 +15,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Upgrade owner dashboard snapshot
+      - name: Repair dashboard functions
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
           p=Path('index.html')
           s=p.read_text()
 
-          # Replace the snapshot card area.
-          old='<div class="statGrid"><div class="stat"><b id="statLeads">0</b><span>Today\'s bookings</span></div><div class="stat"><b id="statFollow">0</b><span>Needs confirmation</span></div><div class="stat"><b id="statConverted">0</b><span>Completed</span></div><div class="stat"><b id="statRate">0</b><span>Confirmed</span></div></div>'
-          new='''<div class="snapshotStats">
-            <div class="snapshotStat"><b id="statLeads">0</b><span>Booking Requests</span></div>
-            <div class="snapshotStat"><b id="statFollow">0</b><span>Confirmed</span></div>
-            <div class="snapshotStat"><b id="statVisited">0</b><span>Visited</span></div>
-            <div class="snapshotStat"><b id="statConverted">0</b><span>Paid</span></div>
-            <div class="snapshotStat snapshotRevenue"><b id="statRevenue">₹0</b><span>Today\'s Revenue</span></div>
-          </div>
-          <div class="performerGrid">
-            <div class="performerCard"><div class="performerLabel"><span class="performerCrown">🏆</span> Top Performer Today</div><div class="performerName" id="topPerformerDay">No paid visits yet</div><div class="performerMeta" id="topPerformerDayMeta">Complete a paid visit to start the leaderboard.</div></div>
-            <div class="performerCard"><div class="performerLabel"><span class="performerCrown">👑</span> Top Performer This Month</div><div class="performerName" id="topPerformerMonth">No paid visits yet</div><div class="performerMeta" id="topPerformerMonthMeta">Monthly performance will appear here.</div></div>
-          </div>'''
-          if old in s:s=s.replace(old,new,1)
+          # The dashboard currently calls renderCatalog during startup, but an earlier
+          # snapshot repair removed the original helper. Restore a safe renderer that
+          # works with the existing service/offer data and never blocks the dashboard.
+          if 'function renderCatalog(){' not in s:
+              fn=r'''function renderCatalog(){
+                const serviceBox=document.getElementById('services');
+                const offerBox=document.getElementById('offers');
+                let svc=[];let off=[];
+                try{svc=(typeof services!=='undefined'&&Array.isArray(services))?services:[]}catch(e){}
+                try{off=(typeof offers!=='undefined'&&Array.isArray(offers))?offers:[]}catch(e){}
+                const safe=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+                if(serviceBox){
+                  serviceBox.innerHTML=svc.length?svc.map(x=>'<div class="card"><span class="badge">Service</span><h3>'+safe(x.name||x.title||'Service')+'</h3><div class="servicePrice">'+(x.price!=null?'₹'+safe(Number(x.price).toLocaleString('en-IN')):'')+'</div>'+(x.description?'<p class="muted">'+safe(x.description)+'</p>':'')+'</div>').join(''):'<div class="empty">No services added yet.</div>';
+                }
+                if(offerBox){
+                  offerBox.innerHTML=off.length?off.map(x=>'<div class="card offer"><span class="badge">Offer</span><h3>'+safe(x.title||x.name||'Special Offer')+'</h3>'+(x.description?'<p class="muted">'+safe(x.description)+'</p>':'')+(x.price!=null?'<div class="servicePrice">₹'+safe(Number(x.price).toLocaleString('en-IN'))+'</div>':'')+'</div>').join(''):'<div class="empty">No offers added yet.</div>';
+                }
+              }
+              '''
+              pos=s.find('function renderBookingSnapshot()')
+              if pos<0: pos=s.find('function renderLeads()')
+              if pos<0: raise SystemExit('Could not find dashboard render insertion point')
+              s=s[:pos]+fn+s[pos:]
 
-          # Add visual styles.
-          anchor='''\n.bookingSnapshot{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}.bookingSnapshotTitle{font-size:12px;font-weight:900;text-transform:uppercase;color:var(--muted);margin-bottom:8px}.bookingSnapshotRows{display:grid;gap:7px}.bookingSnapshotRow{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:#fff}.bookingSnapshotName{font-weight:800;font-size:13px}.bookingSnapshotMeta{font-size:11px;color:var(--muted);margin-top:2px}.bookingSnapshotStatus{font-size:10px;font-weight:900;padding:4px 6px;border-radius:999px;background:var(--brand2);color:var(--brand);height:max-content}.bookingSnapshotEmpty{font-size:12px;color:var(--muted);padding:8px 0}'''
-          styles='''\n.bookingSnapshot{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}.snapshotStats{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}.snapshotStat{background:#f8faf8;border:1px solid var(--line);border-radius:14px;padding:12px}.snapshotStat b{display:block;font-size:23px;color:var(--brand)}.snapshotStat span{display:block;color:var(--muted);font-size:11px;margin-top:3px}.snapshotRevenue b{font-size:19px}.performerGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.performerCard{border:1px solid var(--line);border-radius:14px;padding:13px;background:linear-gradient(135deg,#f8faf8,#fff)}.performerLabel{font-size:10px;text-transform:uppercase;font-weight:900;color:var(--muted);letter-spacing:.04em}.performerName{font-size:18px;font-weight:900;color:var(--brand);margin-top:4px}.performerMeta{font-size:11px;color:var(--muted);margin-top:4px}.performerCrown{font-size:18px}.bookingSnapshotTitle{font-size:12px;font-weight:900;text-transform:uppercase;color:var(--muted);margin:14px 0 8px}.bookingSnapshotRows{display:grid;gap:7px}.bookingSnapshotRow{display:grid;grid-template-columns:1fr auto;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#fff}.bookingSnapshotName{font-weight:800;font-size:13px}.bookingSnapshotMeta{font-size:11px;color:var(--muted);margin-top:2px}.bookingSnapshotStatus{font-size:10px;font-weight:900;padding:4px 6px;border-radius:999px;background:var(--brand2);color:var(--brand);height:max-content}.bookingSnapshotEmpty{font-size:12px;color:var(--muted);padding:8px 0}@media(max-width:850px){.snapshotStats{grid-template-columns:repeat(2,1fr)}.performerGrid{grid-template-columns:1fr}}'''
-          if anchor in s:s=s.replace(anchor,styles,1)
+          # Ensure a booking snapshot exists even if the previous repair was partially applied.
+          if 'function renderBookingSnapshot(){' not in s:
+              raise SystemExit('renderBookingSnapshot missing')
 
-          # Remove old injected snapshot functions/scripts and install one authoritative renderer.
-          s=re.sub(r'<script>\(function\(\)\{\s*async function loadBookingSnapshot\(\).*?</script>','',s,flags=re.S)
-          marker="function renderBookingSnapshot(){"
-          start=s.find(marker)
-          if start>=0:
-              end=s.find('function renderLeads()',start)
-              if end>start:s=s[:start]+s[end:]
-
-          fn=r'''function renderBookingSnapshot(){
-            const box=$('bookingSnapshotList');if(!box||!salon||publicMode)return;
-            const pad=n=>String(n).padStart(2,'0');
-            const now=new Date();
-            const today=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
-            const month=now.getFullYear()+'-'+pad(now.getMonth()+1);
-            const rows=appointments||[];
-            const todayRows=rows.filter(x=>x.appointment_date===today&&!['Cancelled','No Show'].includes(x.status));
-            const confirmed=todayRows.filter(x=>x.status==='Confirmed').length;
-            const set=(id,val)=>{const el=$(id);if(el)el.textContent=String(val)};
-            const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0});
-            set('statLeads',todayRows.filter(x=>x.status==='Requested'||x.status==='Confirmed').length);
-            set('statFollow',confirmed);
-            const visits=window.__slmVisits||[];
-            const paidToday=visits.filter(v=>String(v.visited_at||'').slice(0,10)===today);
-            const revenue=paidToday.reduce((sum,v)=>sum+Math.max(0,Number(v.amount||0)-Number(v.discount||0)),0);
-            set('statVisited',paidToday.length);set('statConverted',paidToday.length);set('statRevenue',money(revenue));
-            const rank=items=>{const m={};items.forEach(v=>{const n=(v.staff_name||'Unassigned').trim()||'Unassigned';if(!m[n])m[n]={name:n,revenue:0,visits:0};m[n].revenue+=Math.max(0,Number(v.amount||0)-Number(v.discount||0));m[n].visits++});return Object.values(m).sort((a,b)=>b.revenue-a.revenue||b.visits-a.visits)};
-            const day=rank(paidToday),mon=rank(visits.filter(v=>String(v.visited_at||'').slice(0,7)===month));
-            const performer=(id,meta,x,empty)=>{set(id,x?x.name:empty);set(meta,x?money(x.revenue)+' revenue · '+x.visits+' paid visit'+(x.visits===1?'':'s'):empty)};
-            performer('topPerformerDay','topPerformerDayMeta',day[0],'No paid visits yet');performer('topPerformerMonth','topPerformerMonthMeta',mon[0],'No paid visits yet');
-            const rankDate=(a,b)=>((a.appointment_date||'9999-99-99')+' '+(a.appointment_time||'99:99:99')).localeCompare((b.appointment_date||'9999-99-99')+' '+(b.appointment_time||'99:99:99'));
-            const upcoming=rows.filter(x=>x.appointment_date>=today&&!['Cancelled','Completed','No Show'].includes(x.status)).sort(rankDate);
-            const recent=rows.filter(x=>x.appointment_date<today||x.status==='Completed').sort((a,b)=>rankDate(b,a));
-            const display=upcoming.concat(recent).slice(0,4);
-            const safe=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-            box.querySelector('.bookingSnapshotRows').innerHTML=display.length?display.map(x=>{const tm=x.appointment_time?String(x.appointment_time).slice(0,5):'';return '<div class="bookingSnapshotRow"><div><div class="bookingSnapshotName">'+safe(x.customer_name||'Customer')+'</div><div class="bookingSnapshotMeta">'+safe(x.service||'Service')+' · '+safe(x.appointment_date||'—')+(tm?' · '+safe(tm):'')+(x.source?' · '+safe(x.source):'')+'</div></div><span class="bookingSnapshotStatus">'+safe(x.status||'Requested')+'</span></div>'}).join(''):'<div class="bookingSnapshotEmpty">No bookings yet.</div>';
-          }
-          async function loadSnapshotVisits(){
-            if(!salon||!session?.access_token)return;
-            try{window.__slmVisits=await api('/rest/v1/customer_visits?salon_id=eq.'+encodeURIComponent(salon.id)+'&select=id,amount,discount,staff_name,visited_at&order=visited_at.desc&limit=1000').catch(()=>[])}catch(e){window.__slmVisits=[]}
-            renderBookingSnapshot();
-          }
-          '''
-          # Insert snapshot function immediately before renderLeads and call it after appointment loading.
-          pos=s.find('function renderLeads()')
-          if pos<0:raise SystemExit('renderLeads not found')
-          s=s[:pos]+fn+s[pos:]
-          oldload="async function loadLeads(){if(!salon)return;leads=await api('/rest/v1/leads?salon_id=eq.'+salon.id+'&select=*&order=created_at.desc').catch(()=>[]);await loadAppointments();renderStats();renderBookingSnapshot();renderLeads()}"
-          newload="async function loadLeads(){if(!salon)return;leads=await api('/rest/v1/leads?salon_id=eq.'+salon.id+'&select=*&order=created_at.desc').catch(()=>[]);await loadAppointments();await loadSnapshotVisits();renderStats();renderBookingSnapshot();renderLeads()}"
-          if oldload in s:s=s.replace(oldload,newload,1)
           p.write_text(s)
           PY
 
@@ -116,5 +74,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html bookings.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Upgrade dashboard with revenue and top performer'
+          git commit -m 'Fix missing catalog renderer'
           git push
