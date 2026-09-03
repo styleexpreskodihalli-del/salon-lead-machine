@@ -66,19 +66,47 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          import re
+          from html.parser import HTMLParser
+
           out=Path('/tmp/slm-js')
           out.mkdir(exist_ok=True)
+
+          class ScriptParser(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=False)
+                  self.in_script=False
+                  self.blocks=[]
+              def handle_starttag(self, tag, attrs):
+                  if tag.lower() == 'script':
+                      self.in_script=True
+                      self.blocks.append([])
+              def handle_endtag(self, tag):
+                  if tag.lower() == 'script' and self.in_script:
+                      self.in_script=False
+              def handle_data(self, data):
+                  if self.in_script and self.blocks:
+                      self.blocks[-1].append(data)
+              def handle_entityref(self, name):
+                  if self.in_script and self.blocks:
+                      self.blocks[-1].append('&'+name+';')
+              def handle_charref(self, name):
+                  if self.in_script and self.blocks:
+                      self.blocks[-1].append('&#'+name+';')
+
           n=0
           for p in Path('.').glob('*.html'):
-              s=p.read_text(encoding='utf-8')
-              for i,m in enumerate(re.finditer(r'<script(?:\s[^>]*)?>(.*?)</script>', s, re.S|re.I),1):
-                  code=m.group(1).strip()
-                  if not code or 'application/ld+json' in m.group(0).lower():
+              parser=ScriptParser()
+              parser.feed(p.read_text(encoding='utf-8'))
+              parser.close()
+              for i,parts in enumerate(parser.blocks,1):
+                  code=''.join(parts).strip()
+                  if not code:
+                      continue
+                  if 'application/ld+json' in code.lower():
                       continue
                   (out/f'{p.stem}-{i}.js').write_text(code,encoding='utf-8')
                   n+=1
-          print(f'Extracted {n} JavaScript blocks.')
+          print(f'Extracted {n} JavaScript blocks with an HTML-aware parser.')
           PY
           for f in /tmp/slm-js/*.js; do
             node --check "$f"
