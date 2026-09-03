@@ -1,4 +1,4 @@
-name: Fix Customer 360 workflow
+name: Finish Bookings and Customers workspace
 
 on:
   push:
@@ -10,37 +10,55 @@ permissions:
   contents: write
 
 jobs:
-  connect_customer_360:
+  finish_workspace:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Connect customer rows
+      - name: Finish booking-first workspace
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
-          p = Path('index.html')
-          s = p.read_text()
-          s = s.replace('Customers &amp; Calendar', 'Bookings &amp; Customers')
-          s = s.replace('Customer Pipeline', 'Bookings &amp; Customers')
-          s = s.replace('Total customers', 'Booking Requests')
-          s = s.replace('New</span>', 'Pending</span>')
-          s = s.replace('Contacted</span>', 'Confirmed</span>')
-          s = s.replace('Converted</span>', 'Completed</span>')
-          old = re.compile(r'function openCustomer360\(customerId,phone,name\)\{.*?\}', re.S)
-          new = "function openCustomer360(customerId,phone,name){if(!salon||(!customerId&&!phone)){alert('Customer record is not available yet.');return}const qs=new URLSearchParams({salon:salon.id,customer:customerId||'',phone:phone||'',name:name||''});location.href='customer360.html?'+qs.toString()}"
-          if old.search(s):
-              s = old.sub(new, s, count=1)
-          elif 'function renderLeads()' in s:
-              s = s.replace('function renderLeads()', new + '\nfunction renderLeads()', 1)
+          p=Path('index.html')
+          s=p.read_text()
+
+          replacements={
+            'Manage every enquiry, booking and customer journey from one place.':'Manage booking requests, customer records, confirmations, visits and loyalty from one place.',
+            '<option value="All">All statuses</option><option>New</option><option>Contacted</option><option>Converted</option>':'<option value="All">All booking statuses</option><option>Requested</option><option>Confirmed</option><option>Completed</option><option>Cancelled</option><option>No Show</option>',
+            '>+ New Lead<': '>+ Create Booking<',
+            '<span>Booking Requests</span>':'<span>Booking Requests</span>',
+            '<span>Pending</span>':'<span>Pending</span>',
+            '<span>Confirmed</span>':'<span>Confirmed</span>',
+            '<span>Completed</span>':'<span>Completed</span>',
+            '<h3>Appointment Calendar</h3>':'<h3>Bookings Calendar</h3>',
+            'Bookings, confirmations, reschedules, cancellations and completed visits.':'All booking activity stays connected to the same customer record.',
+          }
+          for a,b in replacements.items(): s=s.replace(a,b)
+
+          # Replace the old lead filter event mapping with appointment status values when present.
+          s=s.replace("const allowed=['All','New','Contacted','Converted']", "const allowed=['All','Requested','Confirmed','Completed','Cancelled','No Show']")
+          s=s.replace("status==='New'", "status==='Requested'")
+          s=s.replace("status==='Contacted'", "status==='Confirmed'")
+          s=s.replace("status==='Converted'", "status==='Completed'")
+
+          # Ensure the Customer 360 handler is a real navigation action.
+          pat=re.compile(r'function openCustomer360\(customerId,phone,name\)\{.*?\}',re.S)
+          fn="function openCustomer360(customerId,phone,name){if(!salon||(!customerId&&!phone)){alert('Customer record is not available yet.');return}const qs=new URLSearchParams({salon:salon.id,customer:customerId||'',phone:phone||'',name:name||''});location.href='customer360.html?'+qs.toString()}"
+          if pat.search(s): s=pat.sub(fn,s,count=1)
+
+          # Add a visible booking-first flow card once, immediately before the table.
+          marker='<div id="leadTable"></div>'
+          flow='''<div class="card" style="margin:18px 0;background:#f8faf8"><div class="sectionHead"><div><h3>Live Booking & Customer Flow</h3><div class="muted">Every request becomes a customer record, then moves through the real salon operating flow.</div></div><span class="badge">Booking-first</span></div><div class="websitePills"><span class="websitePill">Lead Received / Booking Request</span><span class="websitePill">Existing or New Customer</span><span class="websitePill">Confirm Booking</span><span class="websitePill">Visited</span><span class="websitePill">Paid</span><span class="websitePill">Loyalty / Reward</span><span class="websitePill">Repeat / Referral</span></div></div><div id="leadTable"></div>'''
+          if marker in s and 'Live Booking & Customer Flow' not in s: s=s.replace(marker,flow,1)
+
           p.write_text(s)
           PY
-      - name: Commit Customer 360 connection
+      - name: Commit workspace changes
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Connect customer rows to Customer 360'
+          git commit -m 'Finish bookings and customers workspace'
           git push
