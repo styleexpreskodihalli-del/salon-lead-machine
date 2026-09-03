@@ -34,7 +34,6 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import re, sys
-
           files = [p for p in Path('.').glob('*.html') if p.is_file()]
           required_markers = {
               'index.html': ['id="loginBtn"', 'id="customerWebsiteBtn"', 'data-tab="catalog"', 'data-tab="setup"', 'data-tab="settings"'],
@@ -43,7 +42,6 @@ jobs:
               'salon.html': ['public-salon', 'booking.html'],
               'booking.html': ['public-salon', 'public-booking'],
           }
-
           for p in files:
               s = p.read_text(encoding='utf-8')
               if s.count('<script') != s.count('</script>'):
@@ -105,3 +103,6 @@ jobs:
             exit 1
           fi
           echo 'CI self-modification check passed.'
+
+      - name: Verification complete
+        run: echo "Salon Lead Machine production quality verification completed."
