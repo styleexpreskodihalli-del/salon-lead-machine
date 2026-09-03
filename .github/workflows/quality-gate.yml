@@ -33,7 +33,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          import re, sys
+          import sys
           files = [p for p in Path('.').glob('*.html') if p.is_file()]
           required_markers = {
               'index.html': ['id="loginBtn"', 'id="customerWebsiteBtn"', 'data-tab="catalog"', 'data-tab="setup"', 'data-tab="settings"'],
@@ -64,49 +64,58 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf /tmp/slm-js
+          mkdir -p /tmp/slm-js
           python - <<'PY'
           from pathlib import Path
-          from html.parser import HTMLParser
+          import re
 
-          out=Path('/tmp/slm-js')
-          out.mkdir(exist_ok=True)
+          out = Path('/tmp/slm-js')
+          opening = re.compile(r'<script(?:\s[^>]*)?>', re.I)
 
-          class ScriptParser(HTMLParser):
-              def __init__(self):
-                  super().__init__(convert_charrefs=False)
-                  self.in_script=False
-                  self.blocks=[]
-              def handle_starttag(self, tag, attrs):
-                  if tag.lower() == 'script':
-                      self.in_script=True
-                      self.blocks.append([])
-              def handle_endtag(self, tag):
-                  if tag.lower() == 'script' and self.in_script:
-                      self.in_script=False
-              def handle_data(self, data):
-                  if self.in_script and self.blocks:
-                      self.blocks[-1].append(data)
-              def handle_entityref(self, name):
-                  if self.in_script and self.blocks:
-                      self.blocks[-1].append('&'+name+';')
-              def handle_charref(self, name):
-                  if self.in_script and self.blocks:
-                      self.blocks[-1].append('&#'+name+';')
+          def extract_scripts(html):
+              blocks = []
+              pos = 0
+              while True:
+                  start = opening.search(html, pos)
+                  if not start:
+                      break
+                  i = start.end()
+                  quote = None
+                  escaped = False
+                  while i < len(html):
+                      ch = html[i]
+                      if quote:
+                          if escaped:
+                              escaped = False
+                          elif ch == '\\':
+                              escaped = True
+                          elif ch == quote:
+                              quote = None
+                          i += 1
+                          continue
+                      if ch in ('"', "'", '`'):
+                          quote = ch
+                          i += 1
+                          continue
+                      if html[i:i+9].lower() == '</script>':
+                          blocks.append(html[start.end():i])
+                          pos = i + 9
+                          break
+                      i += 1
+                  else:
+                      raise SystemExit('Unterminated <script> block')
+              return blocks
 
-          n=0
+          n = 0
           for p in Path('.').glob('*.html'):
-              parser=ScriptParser()
-              parser.feed(p.read_text(encoding='utf-8'))
-              parser.close()
-              for i,parts in enumerate(parser.blocks,1):
-                  code=''.join(parts).strip()
-                  if not code:
+              for i, code in enumerate(extract_scripts(p.read_text(encoding='utf-8')), 1):
+                  code = code.strip()
+                  if not code or 'application/ld+json' in code.lower():
                       continue
-                  if 'application/ld+json' in code.lower():
-                      continue
-                  (out/f'{p.stem}-{i}.js').write_text(code,encoding='utf-8')
-                  n+=1
-          print(f'Extracted {n} JavaScript blocks with an HTML-aware parser.')
+                  (out / f'{p.stem}-{i}.js').write_text(code, encoding='utf-8')
+                  n += 1
+          print(f'Extracted {n} JavaScript blocks with quote-aware HTML parsing.')
           PY
           for f in /tmp/slm-js/*.js; do
             node --check "$f"
