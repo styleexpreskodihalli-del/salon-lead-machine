@@ -1,4 +1,4 @@
-name: Unify customers and calendar experience
+name: Refine booking and customer operating workspace
 
 on:
   push:
@@ -10,11 +10,11 @@ permissions:
   contents: write
 
 jobs:
-  unify:
+  refine:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Merge Customers and Calendar into one workspace
+      - name: Refine booking-first customer workspace
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -22,48 +22,65 @@ jobs:
           p = Path('index.html')
           s = p.read_text()
 
-          # One navigation item only.
-          s = re.sub(r'<button data-tab="leads" type="button">.*?</button>', '<button data-tab="leads" type="button">Customers &amp; Calendar</button>', s, count=1)
-          s = re.sub(r'<button data-tab="appointments" type="button">.*?</button>', '', s, count=1)
+          # Product language: a booking request is the operational event, not a generic CRM lead.
+          s = s.replace('Customers &amp; Calendar', 'Bookings &amp; Customers')
+          s = s.replace('Customer Pipeline', 'Bookings &amp; Customers')
+          s = s.replace('Manage customers, enquiries, appointments and follow-ups from one workspace.', 'Every booking request, customer and appointment in one operational workspace.')
+          s = s.replace('<span>Total customers</span>', '<span>Booking Requests</span>')
+          s = s.replace('<span>New</span></div></div><div class="mini"><strong id="dashContacted">0</strong><span>Contacted</span>', '<span>Pending</span></div></div><div class="mini"><strong id="dashContacted">0</strong><span>Confirmed</span>')
+          s = s.replace('<strong id="dashConverted">0</strong><span>Converted</span>', '<strong id="dashConverted">0</strong><span>Completed</span>')
+          s = s.replace('<button id="newLeadBtn" class="primary" type="button">+ New Lead</button>', '<button id="newLeadBtn" class="primary" type="button">+ Create Booking</button>')
+          s = s.replace('Search customer, phone or service...', 'Search customer, phone or service...')
 
-          # Remove the old standalone appointments panel completely.
-          s = re.sub(r'<section id="appointments" class="panel">.*?</section>', '', s, count=1, flags=re.S)
+          # Add a visible data-flow explanation once, directly above the request list.
+          marker = '<div class="toolbar"><input id="leadSearch"'
+          flow = '''<div class="card" id="bookingFlow" style="margin-top:18px;background:#f8faf8">
+            <div class="sectionHead"><div><h3>Live Booking &amp; Customer Flow</h3><div class="muted">This is the operating flow behind every customer request.</div></div><span class="badge">Live data</span></div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:center">
+              <div class="mini"><strong>1</strong><span>Request received</span></div><div style="text-align:center;color:var(--muted)">→</div>
+              <div class="mini"><strong>2</strong><span>Existing / New customer</span></div><div style="text-align:center;color:var(--muted)">→</div>
+              <div class="mini"><strong>3</strong><span>Booking requested</span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px">
+              <div class="mini"><strong>4</strong><span>Confirm / Reschedule / Cancel</span></div><div class="mini"><strong>5</strong><span>Visit → Payment</span></div><div class="mini"><strong>6</strong><span>Loyalty → Repeat → Referral</span></div>
+            </div>
+          </div>
+          '''
+          if 'id="bookingFlow"' not in s and marker in s:
+              s = s.replace(marker, flow + marker, 1)
 
-          # Rename the customer workspace and insert the calendar inside it.
-          s = s.replace('<h2>Lead Dashboard</h2>', '<h2>Customers &amp; Calendar</h2>')
-          s = s.replace('<div class="muted">Call, WhatsApp and move leads through your sales pipeline.</div>', '<div class="muted">Manage customers, enquiries, appointments and follow-ups from one workspace.</div>')
-          s = s.replace('<span>Total enquiries</span>', '<span>Total customers</span>')
+          # Use appointment status as the operational status in the booking list.
+          s = re.sub(r'function renderStats\(\)\{.*?\}\nfunction renderLeads', '''function renderStats(){const total=appointments.length,req=appointments.filter(x=>x.status==='Requested').length,conf=appointments.filter(x=>x.status==='Confirmed').length,done=appointments.filter(x=>x.status==='Completed').length;$('statLeads').textContent=req;$('statFollow').textContent=conf;$('statConverted').textContent=done;$('statRate').textContent=(total?Math.round(done*100/total):0)+'%';$('dashTotal').textContent=total;$('dashNew').textContent=req;$('dashContacted').textContent=conf;$('dashConverted').textContent=done}
+function renderLeads''', s, count=1, flags=re.S)
 
-          marker = '<div id="leadTable"></div></section>'
-          calendar = '''<div id="leadTable"></div>
-          <div class="section card" id="calendarWorkspace">
-            <div class="sectionHead"><div><h3>Appointment Calendar</h3><div class="muted">Bookings, confirmations, reschedules, cancellations and completed visits.</div></div><span class="badge">Connected</span></div>
-            <iframe id="calendarFrame" title="Appointment Calendar" src="appointments.html" style="width:100%;min-height:760px;border:1px solid var(--line);border-radius:16px;background:#fff"></iframe>
-          </div></section>'''
-          if marker in s and 'id="calendarWorkspace"' not in s:
-              s = s.replace(marker, calendar, 1)
+          s = re.sub(r'function renderLeads\(\)\{.*?\}\nasync function updateLeadStatus', '''function renderLeads(){const q=($('leadSearch')?.value||'').toLowerCase().trim(),f=$('leadFilter')?.value||'All';const list=appointments.filter(a=>(f==='All'||a.status===f)&&(!q||[a.customer_name,a.customer_phone,a.service,a.source,a.notes].join(' ').toLowerCase().includes(q)));if(!$('leadTable'))return;if(!list.length){$('leadTable').innerHTML='<div class="empty">No booking requests match your filters.</div>';return}$('leadTable').innerHTML='<div class="tableWrap"><table class="table"><thead><tr><th>Customer</th><th>Booking</th><th>Source</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+list.map(a=>'<tr><td><button class="smallBtn customerBtn" data-customer="'+esc(a.customer_id||'')+'" data-phone="'+esc(a.customer_phone||'')+'" data-name="'+esc(a.customer_name||'')+'" type="button">'+esc(a.customer_name||'Customer')+'</button><br><span class="muted">'+esc(a.customer_phone||'')+'</span></td><td>'+esc(a.service||'General service')+'<br><span class="muted">'+esc(a.appointment_date||'—')+(a.appointment_time?' · '+String(a.appointment_time).slice(0,5):'')+'</span></td><td>'+esc(a.source||'Website')+'</td><td><span class="badge">'+esc(a.status||'Requested')+'</span></td><td><div class="actionLinks"><button class="smallBtn callBtn" data-phone="'+esc(a.customer_phone||'')+'" type="button">Call</button><button class="smallBtn waBtn" data-phone="'+esc(a.customer_phone||'')+'" data-name="'+esc(a.customer_name||'')+'" type="button">WhatsApp</button></div></td></tr>').join('')+'</tbody></table></div>';$('leadTable').querySelectorAll('.callBtn').forEach(x=>x.onclick=()=>location.href='tel:'+x.dataset.phone);$('leadTable').querySelectorAll('.waBtn').forEach(x=>x.onclick=()=>window.open('https://wa.me/'+x.dataset.phone.replace(/\\D/g,'')+'?text='+encodeURIComponent('Hi '+x.dataset.name+', this is the salon team. We received your booking request. How can we help you?'),'_blank'));$('leadTable').querySelectorAll('.customerBtn').forEach(x=>x.onclick=()=>openCustomer360(x.dataset.customer,x.dataset.phone,x.dataset.name))}
+async function updateLeadStatus''', s, count=1, flags=re.S)
 
-          # Keep the calendar scoped to the currently signed-in salon.
-          anchor = "async function loadCatalog(){"
-          helper = "function syncCalendar(){const f=document.getElementById('calendarFrame');if(f&&salon)f.src='appointments.html?salon='+encodeURIComponent(salon.id)}\n"
-          if 'function syncCalendar()' not in s:
+          # Booking filters instead of lead-status filters.
+          s = re.sub(r'<select id="leadFilter">.*?</select>', '<select id="leadFilter"><option value="All">All bookings</option><option>Requested</option><option>Confirmed</option><option>Completed</option><option>Cancelled</option><option>No Show</option></select>', s, count=1, flags=re.S)
+
+          # Make booking status updates operate on the appointment record when used by older code paths.
+          if 'function openCustomer360' not in s:
+              anchor = 'async function updateLeadStatus'
+              helper = '''function openCustomer360(customerId,phone,name){alert((name||'Customer')+'\\n'+(phone||'')+'\\n\\nCustomer 360 is connected to this booking. Full profile, visits, spend and loyalty will open here next.')}\n'''
               s = s.replace(anchor, helper + anchor, 1)
-          s = s.replace("async function loadSalon(){const rows=", "async function loadSalon(){const rows=", 1)
-          load_anchor = "async function loadCatalog(){if(!salon)return;"
-          if load_anchor in s and 'syncCalendar();' not in s[s.find(load_anchor):s.find(load_anchor)+300]:
-              # sync immediately after salon is loaded by making loadCatalog also sync
-              s = s.replace(load_anchor, load_anchor + "syncCalendar();", 1)
 
-          # Calendar no longer needs a navigation handler.
-          s = s.replace("document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));", "document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));")
+          # Make the embedded calendar owner-specific.
+          if 'function syncCalendar()' not in s:
+              s = s.replace('async function loadCatalog(){', "function syncCalendar(){const f=document.getElementById('calendarFrame');if(f&&salon)f.src='appointments.html?salon='+encodeURIComponent(salon.id)}\\nasync function loadCatalog(){", 1)
+          s = s.replace('async function loadCatalog(){if(!salon)return;', 'async function loadCatalog(){if(!salon)return;syncCalendar();', 1)
+
+          # Resize flow for mobile.
+          if '#bookingFlow' not in s:
+              s = s.replace('@media(max-width:850px){', '@media(max-width:850px){#bookingFlow>div{grid-template-columns:1fr!important}.', 1)
 
           p.write_text(s)
           PY
-      - name: Commit integration
+      - name: Commit refinement
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Merge customers and calendar workspace'
+          git commit -m 'Make booking requests the primary customer workflow'
           git push
