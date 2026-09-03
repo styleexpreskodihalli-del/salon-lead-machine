@@ -23,26 +23,30 @@ jobs:
 
           p = Path('index.html')
           s = p.read_text()
-          s = s.replace('<button data-tab="leads" type="button" onclick="location.href=\'bookings.html\'">Bookings &amp; Customers</button>', '<button type="button" onclick="location.href=\'bookings.html\'">Bookings &amp; Customers</button>')
+          s = re.sub(r'<button[^>]*data-tab="leads"[^>]*>Bookings &amp; Customers</button>', '<button type="button" onclick="location.href=\'bookings.html\'">Bookings &amp; Customers</button>', s, count=1)
           p.write_text(s)
 
           p = Path('bookings.html')
           s = p.read_text()
+
+          # Remove the extra instructional flow block and embedded legacy calendar.
           s = re.sub(r'<div class="card"><div class="flow">.*?</div></div>\n', '', s, count=1, flags=re.S)
           s = re.sub(r'<div class="card calendar">.*?</div>\n<div id="notice"', '<div id="notice"', s, count=1, flags=re.S)
           s = s.replace('One operational workspace: booking request → customer → confirmation → visit → payment → loyalty.', 'One simple workspace. The system creates or finds the customer automatically; you only confirm bookings and record the bill.')
           s = s.replace('Booking Requests', 'Bookings')
           s = s.replace('<span>Pending</span>', '<span>Needs Confirmation</span>')
-          # The calendar is intentionally removed from this page; the booking list is the
-          # single operational workspace. Avoid referencing the removed iframe on startup.
           s = s.replace("salon=s;$('calendarFrame').src='appointments.html?salon='+encodeURIComponent(salon.id);await loadData();", "salon=s;await loadData();")
 
-          old = "async function status(id,status){const {error}=await db.from('appointments').update({status,updated_at:new Date().toISOString()}).eq('id',id).eq('salon_id',salon.id);if(error){notify(error.message,true);return}await loadData();notify('Booking updated to '+status+'.')}"
-          new = "async function status(id,status){const {data:a,error:ae}=await db.from('appointments').select('*').eq('id',id).eq('salon_id',salon.id).maybeSingle();if(ae||!a){notify(ae?.message||'Booking not found.',true);return}if(status==='Completed'){const amount=Number(prompt('Bill amount paid (₹):','0')||0);if(!Number.isFinite(amount)||amount<0){notify('Please enter a valid bill amount.',true);return}const discount=Number(prompt('Discount (₹):','0')||0);const service=a.service||'Salon service';const {data:v,error:ve}=await db.from('customer_visits').insert({salon_id:salon.id,customer_id:a.customer_id,appointment_id:a.id,service,amount,discount:Math.max(0,discount),visited_at:new Date().toISOString()}).select('*').single();if(ve){notify(ve.message,true);return}const points=Math.max(0,Math.floor(amount/100));if(points){const {error:le}=await db.from('loyalty_transactions').insert({salon_id:salon.id,customer_id:a.customer_id,type:'earn',points,reason:'Visit: '+service,visit_id:v.id});if(le){notify(le.message,true);return}}const {data:c,error:ce}=await db.from('customers').select('*').eq('id',a.customer_id).eq('salon_id',salon.id).maybeSingle();if(ce||!c){notify(ce?.message||'Customer not found.',true);return}const newVisits=Number(c.total_visits||0)+1,newSpend=Number(c.total_spend||0)+amount,newPoints=Number(c.loyalty_points||0)+points,tier=newPoints>=3000?'VIP':newPoints>=1500?'Gold':newPoints>=500?'Silver':'Bronze';const {error:ue}=await db.from('customers').update({total_visits:newVisits,total_spend:newSpend,loyalty_points:newPoints,lifetime_points_earned:Number(c.lifetime_points_earned||0)+points,last_visit_at:new Date().toISOString(),tier,updated_at:new Date().toISOString()}).eq('id',c.id).eq('salon_id',salon.id);if(ue){notify(ue.message,true);return}const {error:ae2}=await db.from('appointments').update({status:'Completed',updated_at:new Date().toISOString()}).eq('id',id).eq('salon_id',salon.id);if(ae2){notify(ae2.message,true);return}await loadData();notify('Visit completed. Bill, customer totals and loyalty updated automatically.');return}const {error}=await db.from('appointments').update({status,updated_at:new Date().toISOString()}).eq('id',id).eq('salon_id',salon.id);if(error){notify(error.message,true);return}await loadData();notify('Booking updated to '+status+'.')}"
-          if old not in s:
-              raise SystemExit('Expected status function was not found; stopping without a partial repair.')
-          s = s.replace(old, new)
+          # Replace the entire status handler between stable function markers so the repair
+          # works regardless of which earlier version of the handler is present.
+          start = s.find('async function status(id,status)')
+          end = s.find('async function createBooking(e)', start)
+          if start < 0 or end < 0:
+              raise SystemExit('Booking status/create markers not found; refusing partial repair.')
+          new_status = """async function status(id,status){const {data:a,error:ae}=await db.from('appointments').select('*').eq('id',id).eq('salon_id',salon.id).maybeSingle();if(ae||!a){notify(ae?.message||'Booking not found.',true);return}if(status==='Completed'){const amount=Number(prompt('Bill amount paid (₹):','0')||0);if(!Number.isFinite(amount)||amount<0){notify('Please enter a valid bill amount.',true);return}const discount=Number(prompt('Discount (₹):','0')||0);const service=a.service||'Salon service';const {data:v,error:ve}=await db.from('customer_visits').insert({salon_id:salon.id,customer_id:a.customer_id,appointment_id:a.id,service,amount,discount:Math.max(0,discount),visited_at:new Date().toISOString()}).select('*').single();if(ve){notify(ve.message,true);return}const points=Math.max(0,Math.floor(amount/100));if(points){const {error:le}=await db.from('loyalty_transactions').insert({salon_id:salon.id,customer_id:a.customer_id,type:'earn',points,reason:'Visit: '+service,visit_id:v.id});if(le){notify(le.message,true);return}}const {data:c,error:ce}=await db.from('customers').select('*').eq('id',a.customer_id).eq('salon_id',salon.id).maybeSingle();if(ce||!c){notify(ce?.message||'Customer not found.',true);return}const now=new Date().toISOString(),newVisits=Number(c.total_visits||0)+1,newSpend=Number(c.total_spend||0)+amount,newPoints=Number(c.loyalty_points||0)+points,tier=newPoints>=3000?'VIP':newPoints>=1500?'Gold':newPoints>=500?'Silver':'Bronze';const {error:ue}=await db.from('customers').update({total_visits:newVisits,total_spend:newSpend,loyalty_points:newPoints,lifetime_points_earned:Number(c.lifetime_points_earned||0)+points,last_visit_at:now,tier,updated_at:now}).eq('id',c.id).eq('salon_id',salon.id);if(ue){notify(ue.message,true);return}const {error:ae2}=await db.from('appointments').update({status:'Completed',updated_at:now}).eq('id',id).eq('salon_id',salon.id);if(ae2){notify(ae2.message,true);return}await loadData();notify('Visit completed. Bill, customer totals and loyalty updated automatically.');return}const {error}=await db.from('appointments').update({status,updated_at:new Date().toISOString()}).eq('id',id).eq('salon_id',salon.id);if(error){notify(error.message,true);return}await loadData();notify('Booking updated to '+status+'.')}\n"""
+          s = s[:start] + new_status + s[end:]
 
+          # Confirm action updates the booking and opens a ready-to-send WhatsApp confirmation.
           s = s.replace("if(action==='confirm')status(a.dataset.id,'Confirmed');", "if(action==='confirm'){status(a.dataset.id,'Confirmed').then(()=>{const row=appointments.find(x=>x.id===a.dataset.id);if(row){const nm=row.customer_name||'Customer';const ph=(row.customer_phone||'').replace(/\\D/g,'');if(ph)window.open('https://wa.me/'+ph+'?text='+encodeURIComponent('Hi '+nm+', your salon booking has been confirmed for '+row.appointment_date+' at '+String(row.appointment_time||'').slice(0,5)+'. See you soon!'),'_blank')}})};")
           p.write_text(s)
           PY
@@ -52,5 +56,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html bookings.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Fix simplified bookings initialization'
+          git commit -m 'Finalize simple booking-first workspace'
           git push
