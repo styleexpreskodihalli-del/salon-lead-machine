@@ -9,32 +9,59 @@ permissions:
   contents: write
 
 jobs:
-  update-customer-website:
+  repair-navigation:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Patch Customer Website navigation
+      - name: Repair application navigation
         run: |
           python - <<'PY'
           from pathlib import Path
+
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          s = s.replace('<button data-tab="demo" type="button">Customer Website</button>', '<button id="customerWebsiteBtn" type="button">Customer Website ↗</button>', 1)
-          s = s.replace('<button type="button" onclick="openCustomerWebsite()">Customer Website ↗</button>', '<button id="customerWebsiteBtn" type="button">Customer Website ↗</button>', 1)
-          s = s.replace('<button type="button" onclick="switchTab(\'demo\')">Open Customer Website</button>', '<button id="openCustomerWebsiteBtn" type="button">Open Customer Website ↗</button>', 1)
-          s = s.replace('<button type="button" onclick="openCustomerWebsite()">Open Customer Website ↗</button>', '<button id="openCustomerWebsiteBtn" type="button">Open Customer Website ↗</button>', 1)
+          # Make the Customer Website controls plain buttons with stable IDs.
+          replacements = {
+              '<button data-tab="demo" type="button">Customer Website</button>': '<button id="customerWebsiteBtn" type="button">Customer Website ↗</button>',
+              '<button type="button" onclick="openCustomerWebsite()">Customer Website ↗</button>': '<button id="customerWebsiteBtn" type="button">Customer Website ↗</button>',
+              '<button type="button" onclick="switchTab(\'demo\')">Open Customer Website</button>': '<button id="openCustomerWebsiteBtn" type="button">Open Customer Website ↗</button>',
+              '<button type="button" onclick="openCustomerWebsite()">Open Customer Website ↗</button>': '<button id="openCustomerWebsiteBtn" type="button">Open Customer Website ↗</button>'
+          }
+          for old, new in replacements.items():
+              if old in s:
+                  s = s.replace(old, new, 1)
 
-          fn = "function openCustomerWebsite(){if(typeof salon==='undefined'||!salon||!salon.id){alert('Please complete Salon Setup first.');return false;}var u='salon.html?salon='+encodeURIComponent(salon.id)+'&preview=1';window.open(u,'_blank');return false;}"
-          if 'function openCustomerWebsite()' not in s:
-              s = s.replace('</script>', fn + "\ndocument.addEventListener('click',function(e){var b=e.target.closest('#customerWebsiteBtn,#openCustomerWebsiteBtn');if(b){e.preventDefault();openCustomerWebsite();}});\n</script>", 1)
+          # Inject a standalone navigation layer immediately before the existing closing script.
+          marker = '</script></body></html>'
+          fix = r'''<script>
+          (function(){
+            function openCustomerWebsiteSafe(){
+              try{
+                if(typeof salon==='undefined'||!salon||!salon.id){alert('Please complete Salon Setup first.');return;}
+                var url='salon.html?salon='+encodeURIComponent(salon.id)+'&preview=1';
+                var w=window.open(url,'_blank');
+                if(!w){window.location.href=url;}
+              }catch(e){alert('Unable to open Customer Website: '+(e.message||e));}
+            }
+            document.addEventListener('click',function(e){
+              var website=e.target.closest('#customerWebsiteBtn,#openCustomerWebsiteBtn');
+              if(website){e.preventDefault();e.stopPropagation();openCustomerWebsiteSafe();return;}
+              var nav=e.target.closest('.nav button[data-tab]');
+              if(nav){e.preventDefault();e.stopPropagation();var tab=nav.getAttribute('data-tab');if(tab){switchTab(tab);}return;}
+            },true);
+            window.openCustomerWebsite=openCustomerWebsiteSafe;
+          })();
+          </script></body></html>'''
+          if marker in s and 'openCustomerWebsiteSafe' not in s:
+              s = s.replace(marker, fix, 1)
 
           p.write_text(s, encoding='utf-8')
           PY
 
-      - name: Commit changes
+      - name: Commit repaired application
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -43,5 +70,5 @@ jobs:
             echo 'No changes needed.'
             exit 0
           fi
-          git commit -m 'Fix Customer Website click handler'
+          git commit -m 'Harden application navigation handlers'
           git push
