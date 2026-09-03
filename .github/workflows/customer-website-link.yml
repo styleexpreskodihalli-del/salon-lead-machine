@@ -20,8 +20,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          # Owner dashboard: Customer Website opens the real public salon page in a new tab,
-          # with an explicit owner preview flag so the public page can show owner controls.
+          # Owner dashboard: Customer Website opens the real public salon page in a new tab.
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
@@ -46,17 +45,23 @@ jobs:
           p = Path('salon.html')
           s = p.read_text(encoding='utf-8')
 
-          s = s.replace('</style></head>', '.ownerPreview{position:sticky;top:0;z-index:50;background:#17211b;color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:800}.ownerPreview span{opacity:.9}.ownerPreview a{color:#fff;text-decoration:none;background:#28654b;padding:7px 11px;border-radius:9px}.ownerPreview a.secondaryPreview{background:#dce9df;color:#164b37}@media(max-width:520px){.ownerPreview{font-size:11px}}}</style></head>', 1)
+          css_marker = '</style></head>'
+          css = '.ownerPreview{position:sticky;top:0;z-index:50;background:#17211b;color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:800}.ownerPreview span{opacity:.9}.ownerPreview a{color:#fff;text-decoration:none;background:#28654b;padding:7px 11px;border-radius:9px}.ownerPreview a.secondaryPreview{background:#dce9df;color:#164b37}@media(max-width:520px){.ownerPreview{font-size:11px}}'
+          if '.ownerPreview{' not in s and css_marker in s:
+              s = s.replace(css_marker, css + '</style></head>', 1)
 
-          s = s.replace("const q=new URLSearchParams(location.search),salonId=q.get('salon'),source=q.get('source')||'Website';", "const q=new URLSearchParams(location.search),salonId=q.get('salon'),source=q.get('source')||'Website',preview=q.get('preview')==='1';")
+          old_const = "const q=new URLSearchParams(location.search),salonId=q.get('salon'),source=q.get('source')||'Website';"
+          new_const = "const q=new URLSearchParams(location.search),salonId=q.get('salon'),source=q.get('source')||'Website',preview=q.get('preview')==='1';"
+          if old_const in s:
+              s = s.replace(old_const, new_const, 1)
 
           old_body = '<body><main class="wrap">'
-          new_body = '<body>'+"`"+'<div id="ownerPreview" class="ownerPreview" style="display:none"><span>👀 Preview Mode · This is your customer website</span><a href="index.html">← Back to Dashboard</a><a class="secondaryPreview" href="index.html?tab=catalog">Edit Website</a></div>'+"`"+'<main class="wrap">'
+          new_body = '<body><div id="ownerPreview" class="ownerPreview" style="display:none"><span>👀 Preview Mode · This is your customer website</span><a href="index.html">← Back to Dashboard</a><a class="secondaryPreview" href="index.html?tab=catalog">Edit Website</a></div><main class="wrap">'
           if old_body in s:
               s = s.replace(old_body, new_body, 1)
 
           old_load = 'async function load(){if(!salonId){'
-          new_load = 'async function load(){if(preview){const bar=document.getElementById(\'ownerPreview\');if(bar)bar.style.display=\'flex\'}if(!salonId){'
+          new_load = "async function load(){if(preview){const bar=document.getElementById('ownerPreview');if(bar)bar.style.display='flex'}if(!salonId){"
           if old_load in s:
               s = s.replace(old_load, new_load, 1)
 
