@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Simplify owner workspace
+      - name: Simplify owner workspace and show booking details
         shell: bash
         run: |
           python - <<'PY'
@@ -23,44 +23,59 @@ jobs:
 
           p = Path('index.html')
           s = p.read_text()
-          s = re.sub(r'<button[^>]*data-tab="leads"[^>]*>Bookings &amp; Customers</button>', '<button type="button" onclick="location.href=\'bookings.html\'">Bookings &amp; Customers</button>', s, count=1)
 
-          # The bookings button has no data-tab because it is a real page. Only wire
-          # tab switching for buttons that actually have a data-tab value.
+          # Keep the bookings workspace as a dedicated page.
+          s = re.sub(r'<button[^>]*data-tab="leads"[^>]*>Bookings &amp; Customers</button>', '<button type="button" onclick="location.href=\'bookings.html\'">Bookings &amp; Customers</button>', s, count=1)
           s = s.replace("document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{if(b.dataset.tab==='appointments'&&salon){window.location.href='appointments.html?salon='+encodeURIComponent(salon.id)}else switchTab(b.dataset.tab)});", "document.querySelectorAll('.nav button[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));")
 
-          # Keep owner dashboard booking terminology aligned with the booking-first model.
-          s = s.replace('<span>Pending</span>', '<span>Needs Confirmation</span>')
-          s = s.replace('<span>Confirmed</span>', '<span>Confirmed</span>')
+          # Make the first owner screen booking-focused instead of lead-focused.
+          s = s.replace('<h3>Lead snapshot</h3>', '<h3>Booking snapshot</h3>')
+          s = s.replace('<span>New leads</span>', '<span>Today\'s bookings</span>')
+          s = s.replace('<span>Follow-ups</span>', '<span>Needs confirmation</span>')
           s = s.replace('<span>Completed</span>', '<span>Completed</span>')
+          s = s.replace('<span>Conversion rate</span>', '<span>Confirmed</span>')
+          s = s.replace('<b id="statRate">0%</b><span>Confirmed</span>', '<b id="statRate">0</b><span>Confirmed</span>')
 
-          p.write_text(s)
+          # Add a compact booking-detail list directly under the snapshot.
+          marker = '<div class="statGrid"><div class="stat"><b id="statLeads">0</b><span>Today\'s bookings</span></div><div class="stat"><b id="statFollow">0</b><span>Needs confirmation</span></div><div class="stat"><b id="statConverted">0</b><span>Completed</span></div><div class="stat"><b id="statRate">0</b><span>Confirmed</span></div></div>'
+          if 'id="bookingSnapshotList"' not in s and marker in s:
+              s = s.replace(marker, marker + '<div class="bookingSnapshot" id="bookingSnapshotList"><div class="bookingSnapshotTitle">Upcoming &amp; recent bookings</div><div class="bookingSnapshotRows"><div class="bookingSnapshotEmpty">Loading bookings…</div></div></div>', 1)
 
-          p = Path('bookings.html')
-          s = p.read_text()
-          s = re.sub(r'<div class="card"><div class="flow">.*?</div></div>\n', '', s, count=1, flags=re.S)
-          s = re.sub(r'<div class="card calendar">.*?</div>\n<div id="notice"', '<div id="notice"', s, count=1, flags=re.S)
-          s = s.replace('One operational workspace: booking request → customer → confirmation → visit → payment → loyalty.', 'One simple workspace. The system creates or finds the customer automatically; you only confirm bookings and record the bill.')
-          s = s.replace('Booking Requests', 'Bookings')
-          s = s.replace('<span>Pending</span>', '<span>Needs Confirmation</span>')
-          s = s.replace("salon=s;$('calendarFrame').src='appointments.html?salon='+encodeURIComponent(salon.id);await loadData();", "salon=s;await loadData();")
+          css = '''.bookingSnapshot{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}.bookingSnapshotTitle{font-size:12px;font-weight:900;text-transform:uppercase;color:var(--muted);margin-bottom:8px}.bookingSnapshotRows{display:grid;gap:7px}.bookingSnapshotRow{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:#fff}.bookingSnapshotName{font-weight:800;font-size:13px}.bookingSnapshotMeta{font-size:11px;color:var(--muted);margin-top:2px}.bookingSnapshotStatus{font-size:10px;font-weight:900;padding:4px 6px;border-radius:999px;background:var(--brand2);color:var(--brand);height:max-content}.bookingSnapshotEmpty{font-size:12px;color:var(--muted);padding:8px 0}'''
+          s = s.replace('</style>', css + '</style>', 1)
 
-          start = s.find('async function status(id,status)')
-          end = s.find('async function createBooking(e)', start)
-          if start < 0 or end < 0:
-              raise SystemExit('Booking status/create markers not found; refusing partial repair.')
-          new_status = """async function status(id,status){const {data:a,error:ae}=await db.from('appointments').select('*').eq('id',id).eq('salon_id',salon.id).maybeSingle();if(ae||!a){notify(ae?.message||'Booking not found.',true);return}if(status==='Completed'){const amount=Number(prompt('Bill amount paid (₹):','0')||0);if(!Number.isFinite(amount)||amount<0){notify('Please enter a valid bill amount.',true);return}const discount=Number(prompt('Discount (₹):','0')||0);const service=a.service||'Salon service';const {data:v,error:ve}=await db.from('customer_visits').insert({salon_id:salon.id,customer_id:a.customer_id,appointment_id:a.id,service,amount,discount:Math.max(0,discount),visited_at:new Date().toISOString()}).select('*').single();if(ve){notify(ve.message,true);return}const points=Math.max(0,Math.floor(amount/100));if(points){const {error:le}=await db.from('loyalty_transactions').insert({salon_id:salon.id,customer_id:a.customer_id,type:'earn',points,reason:'Visit: '+service,visit_id:v.id});if(le){notify(le.message,true);return}}const {data:c,error:ce}=await db.from('customers').select('*').eq('id',a.customer_id).eq('salon_id',salon.id).maybeSingle();if(ce||!c){notify(ce?.message||'Customer not found.',true);return}const now=new Date().toISOString(),newVisits=Number(c.total_visits||0)+1,newSpend=Number(c.total_spend||0)+amount,newPoints=Number(c.loyalty_points||0)+points,tier=newPoints>=3000?'VIP':newPoints>=1500?'Gold':newPoints>=500?'Silver':'Bronze';const {error:ue}=await db.from('customers').update({total_visits:newVisits,total_spend:newSpend,loyalty_points:newPoints,lifetime_points_earned:Number(c.lifetime_points_earned||0)+points,last_visit_at:now,tier,updated_at:now}).eq('id',c.id).eq('salon_id',salon.id);if(ue){notify(ue.message,true);return}const {error:ae2}=await db.from('appointments').update({status:'Completed',updated_at:now}).eq('id',id).eq('salon_id',salon.id);if(ae2){notify(ae2.message,true);return}await loadData();notify('Visit completed. Bill, customer totals and loyalty updated automatically.');return}const {error}=await db.from('appointments').update({status,updated_at:new Date().toISOString()}).eq('id',id).eq('salon_id',salon.id);if(error){notify(error.message,true);return}await loadData();notify('Booking updated to '+status+'.')}\n"""
-          s = s[:start] + new_status + s[end:]
-
-          s = s.replace("if(action==='confirm')status(a.dataset.id,'Confirmed');", "if(action==='confirm'){status(a.dataset.id,'Confirmed').then(()=>{const row=appointments.find(x=>x.id===a.dataset.id);if(row){const nm=row.customer_name||'Customer';const ph=(row.customer_phone||'').replace(/\\D/g,'');if(ph)window.open('https://wa.me/'+ph+'?text='+encodeURIComponent('Hi '+nm+', your salon booking has been confirmed for '+row.appointment_date+' at '+String(row.appointment_time||'').slice(0,5)+'. See you soon!'),'_blank')}})};")
-          s = s.replace("}})};else if(action==='complete')", "}})}else if(action==='complete')")
+          # Pull real booking details using the same owner session already used by the dashboard.
+          script = '''<script>(function(){
+            const waitForBookingSnapshot=async()=>{
+              const box=document.getElementById('bookingSnapshotList');
+              if(!box)return;
+              let session=null;try{session=JSON.parse(localStorage.getItem('slm_session')||'null')}catch(e){}
+              if(!session?.access_token){return setTimeout(waitForBookingSnapshot,1200)}
+              const salonId=(window.salon&&window.salon.id)||new URLSearchParams(location.search).get('salon');
+              if(!salonId)return setTimeout(waitForBookingSnapshot,1200);
+              try{
+                const client=window.supabase.createClient('https://dhiimviybpbggvuuzwfh.supabase.co','sb_publishable_IOXACVkfe217drLmK0UCcA_ADmDLTg7');
+                await client.auth.setSession({access_token:session.access_token,refresh_token:session.refresh_token||''});
+                const now=new Date(),today=now.toISOString().slice(0,10);
+                const {data,error}=await client.from('appointments').select('id,customer_name,customer_phone,service,appointment_date,appointment_time,status,source').eq('salon_id',salonId).order('appointment_date',{ascending:true}).order('appointment_time',{ascending:true}).limit(12);
+                if(error)throw error;
+                const rows=data||[],todayRows=rows.filter(x=>x.appointment_date===today),requested=rows.filter(x=>x.status==='Requested').length,confirmed=rows.filter(x=>x.status==='Confirmed').length,completed=rows.filter(x=>x.status==='Completed').length;
+                const a=document.getElementById('statLeads'),b=document.getElementById('statFollow'),c=document.getElementById('statRate'),d=document.getElementById('statConverted');
+                if(a)a.textContent=todayRows.length;if(b)b.textContent=requested;if(c)c.textContent=confirmed;if(d)d.textContent=completed;
+                const display=rows.filter(x=>['Requested','Confirmed'].includes(x.status)).slice(0,4);
+                box.querySelector('.bookingSnapshotRows').innerHTML=display.length?display.map(x=>{const dt=x.appointment_date||'—',tm=x.appointment_time?String(x.appointment_time).slice(0,5):'';return '<div class="bookingSnapshotRow"><div><div class="bookingSnapshotName">'+String(x.customer_name||'Customer').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))+'</div><div class="bookingSnapshotMeta">'+String(x.service||'Service')+' · '+dt+(tm?' · '+tm:'')+'</div></div><span class="bookingSnapshotStatus">'+String(x.status||'Requested')+'</span></div>'}).join(''):'<div class="bookingSnapshotEmpty">No upcoming booking requests.</div>';
+              }catch(e){box.querySelector('.bookingSnapshotRows').innerHTML='<div class="bookingSnapshotEmpty">Booking details unavailable right now.</div>'}
+            };
+            setTimeout(waitForBookingSnapshot,700);
+          })();</script>'''
+          s = s.replace('</body>', script + '</body>', 1)
           p.write_text(s)
           PY
       - name: Commit repair
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html bookings.html
+          git add index.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Fix dashboard tab navigation'
+          git commit -m 'Show booking details on owner dashboard'
           git push
