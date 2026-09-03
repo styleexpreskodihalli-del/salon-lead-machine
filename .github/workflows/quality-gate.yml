@@ -1,0 +1,107 @@
+name: Production Quality Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required application files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(index.html salon.html booking.html bookings.html customer360.html owner-hub.html)
+          for f in "${required[@]}"; do
+            test -f "$f" || { echo "Missing required file: $f"; exit 1; }
+          done
+          echo "Required application files present."
+
+      - name: Validate HTML and JavaScript integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re, sys
+
+          files = [p for p in Path('.').glob('*.html') if p.is_file()]
+          required_markers = {
+              'index.html': ['id="loginBtn"', 'id="customerWebsiteBtn"', 'data-tab="catalog"', 'data-tab="setup"', 'data-tab="settings"'],
+              'bookings.html': ['Bookings & Customers', 'customer360.html', 'mark_appointment_visited_paid'],
+              'customer360.html': ['Customer 360', 'customer_visits', 'loyalty_transactions'],
+              'salon.html': ['public-salon', 'booking.html'],
+              'booking.html': ['public-salon', 'public-booking'],
+          }
+
+          for p in files:
+              s = p.read_text(encoding='utf-8')
+              if s.count('<script') != s.count('</script>'):
+                  print(f'SCRIPT TAG MISMATCH: {p}: {s.count("<script")} opening vs {s.count("</script>")} closing')
+                  sys.exit(1)
+              if s.count('<body') != 1 or s.count('</body>') != 1:
+                  print(f'BODY TAG ERROR: {p}')
+                  sys.exit(1)
+              if 'service_role' in s.lower() or 'sb_secret_' in s.lower():
+                  print(f'SECRET-LIKE TOKEN FOUND IN BROWSER FILE: {p}')
+                  sys.exit(1)
+              for marker in required_markers.get(p.name, []):
+                  if marker not in s:
+                      print(f'MISSING MARKER in {p}: {marker}')
+                      sys.exit(1)
+          print(f'HTML structural validation passed for {len(files)} HTML files.')
+          PY
+
+      - name: Validate JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          out=Path('/tmp/slm-js')
+          out.mkdir(exist_ok=True)
+          n=0
+          for p in Path('.').glob('*.html'):
+              s=p.read_text(encoding='utf-8')
+              for i,m in enumerate(re.finditer(r'<script(?:\s[^>]*)?>(.*?)</script>', s, re.S|re.I),1):
+                  code=m.group(1).strip()
+                  if not code or 'application/ld+json' in m.group(0).lower():
+                      continue
+                  (out/f'{p.stem}-{i}.js').write_text(code,encoding='utf-8')
+                  n+=1
+          print(f'Extracted {n} JavaScript blocks.')
+          PY
+          for f in /tmp/slm-js/*.js; do
+            node --check "$f"
+          done
+
+      - name: Check application separation
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RniE 'store-automation|opgnylgfzfaowjhwzceq' --include='*.html' --include='*.js' --exclude-dir='.git' .; then
+            echo 'ERROR: old Store Automation project reference detected.'
+            exit 1
+          fi
+          echo 'Application separation check passed.'
+
+      - name: Check for accidental repair recursion
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RniE 'git (add|commit|push)|github-actions\[bot\].*commit|Path\('\''index\.html'\''\)' .github/workflows; then
+            echo 'ERROR: CI workflow contains an application self-modification pattern.'
+            exit 1
+          fi
+          echo 'CI self-modification check passed.'
