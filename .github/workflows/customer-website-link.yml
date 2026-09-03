@@ -23,7 +23,7 @@ jobs:
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          # Make the Customer Website controls plain buttons with stable IDs.
+          # Normalize the two Customer Website controls without changing any existing dashboard logic.
           replacements = {
               '<button data-tab="demo" type="button">Customer Website</button>': '<button id="customerWebsiteBtn" type="button">Customer Website ↗</button>',
               '<button type="button" onclick="openCustomerWebsite()">Customer Website ↗</button>': '<button id="customerWebsiteBtn" type="button">Customer Website ↗</button>',
@@ -31,11 +31,9 @@ jobs:
               '<button type="button" onclick="openCustomerWebsite()">Open Customer Website ↗</button>': '<button id="openCustomerWebsiteBtn" type="button">Open Customer Website ↗</button>'
           }
           for old, new in replacements.items():
-              if old in s:
-                  s = s.replace(old, new, 1)
+              s = s.replace(old, new, 1)
 
-          # Inject a standalone navigation layer immediately before the existing closing script.
-          marker = '</script></body></html>'
+          # Add a capture-phase navigation layer. It does not replace existing application functions.
           fix = r'''<script>
           (function(){
             function openCustomerWebsiteSafe(){
@@ -50,15 +48,30 @@ jobs:
               var website=e.target.closest('#customerWebsiteBtn,#openCustomerWebsiteBtn');
               if(website){e.preventDefault();e.stopPropagation();openCustomerWebsiteSafe();return;}
               var nav=e.target.closest('.nav button[data-tab]');
-              if(nav){e.preventDefault();e.stopPropagation();var tab=nav.getAttribute('data-tab');if(tab){switchTab(tab);}return;}
+              if(nav){e.preventDefault();e.stopPropagation();var tab=nav.getAttribute('data-tab');if(tab&&typeof switchTab==='function'){switchTab(tab);}return;}
             },true);
             window.openCustomerWebsite=openCustomerWebsiteSafe;
           })();
-          </script></body></html>'''
-          if marker in s and 'openCustomerWebsiteSafe' not in s:
-              s = s.replace(marker, fix, 1)
+          </script>'''
+          if 'openCustomerWebsiteSafe' not in s:
+              marker = '</body>'
+              if marker not in s:
+                  raise SystemExit('index.html has no </body> marker; refusing to modify it')
+              s = s.replace(marker, fix + '\n</body>', 1)
 
           p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Validate HTML markers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s = Path('index.html').read_text(encoding='utf-8')
+          required = ['id="customerWebsiteBtn"', 'openCustomerWebsiteSafe', "location.href='bookings.html'", 'data-tab="catalog"', 'data-tab="setup"', 'data-tab="settings"']
+          missing = [x for x in required if x not in s]
+          if missing:
+              raise SystemExit('Missing required navigation marker(s): ' + ', '.join(missing))
+          print('Navigation markers validated:', ', '.join(required))
           PY
 
       - name: Commit repaired application
@@ -70,5 +83,5 @@ jobs:
             echo 'No changes needed.'
             exit 0
           fi
-          git commit -m 'Harden application navigation handlers'
+          git commit -m 'Fix application navigation without changing existing features'
           git push
