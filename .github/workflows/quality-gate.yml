@@ -72,7 +72,11 @@ jobs:
 
           out = Path('/tmp/slm-js')
           opening = re.compile(r'<script(?:\s[^>]*)?>', re.I)
+          closing = re.compile(r'</script\s*>', re.I)
 
+          # HTML parsing rule: the first closing </script> ends a script element,
+          # even when the text appears inside a JavaScript string/template literal.
+          # Conversely, <script> text inside JavaScript is harmless script data.
           def extract_scripts(html):
               blocks = []
               pos = 0
@@ -80,31 +84,11 @@ jobs:
                   start = opening.search(html, pos)
                   if not start:
                       break
-                  i = start.end()
-                  quote = None
-                  escaped = False
-                  while i < len(html):
-                      ch = html[i]
-                      if quote:
-                          if escaped:
-                              escaped = False
-                          elif ch == '\\':
-                              escaped = True
-                          elif ch == quote:
-                              quote = None
-                          i += 1
-                          continue
-                      if ch in ('"', "'", '`'):
-                          quote = ch
-                          i += 1
-                          continue
-                      if html[i:i+9].lower() == '</script>':
-                          blocks.append(html[start.end():i])
-                          pos = i + 9
-                          break
-                      i += 1
-                  else:
+                  end = closing.search(html, start.end())
+                  if not end:
                       raise SystemExit('Unterminated <script> block')
+                  blocks.append(html[start.end():end.start()])
+                  pos = end.end()
               return blocks
 
           n = 0
@@ -115,7 +99,7 @@ jobs:
                       continue
                   (out / f'{p.stem}-{i}.js').write_text(code, encoding='utf-8')
                   n += 1
-          print(f'Extracted {n} JavaScript blocks with quote-aware HTML parsing.')
+          print(f'Extracted {n} JavaScript blocks using HTML script-element boundaries.')
           PY
           for f in /tmp/slm-js/*.js; do
             node --check "$f"
