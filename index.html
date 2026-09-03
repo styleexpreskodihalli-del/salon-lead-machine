@@ -44,8 +44,38 @@ async function getUser(){try{return await api('/auth/v1/user')}catch(e){return n
 async function loadSalon(){const rows=await api('/rest/v1/salons?owner_id=eq.'+encodeURIComponent(user.id)+'&select=*&limit=1');if(rows?.[0])salon=rows[0];else{const created=await api('/rest/v1/salons',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify({owner_id:user.id,name:'My Salon',city:'',whatsapp:'',rating:0,tagline:'Your salon. Your customers. Your growth.'})});salon=created[0]}}
 function syncCalendar(){const f=document.getElementById('calendarFrame');if(f&&salon)f.src='appointments.html?salon='+encodeURIComponent(salon.id)}
 async function loadCatalog(){if(!salon)return;syncCalendar();services=await api('/rest/v1/salon_services?salon_id=eq.'+salon.id+'&active=eq.true&select=*&order=sort_order,id').catch(()=>[]);offers=await api('/rest/v1/salon_offers?salon_id=eq.'+salon.id+'&active=eq.true&select=*&order=sort_order,id').catch(()=>[]);if(!services.length)services=FALLBACK_SERVICES;if(!offers.length)offers=FALLBACK_OFFERS;renderCatalog()}
-async function loadLeads(){if(!salon)return;leads=await api('/rest/v1/leads?salon_id=eq.'+salon.id+'&select=*&order=created_at.desc').catch(()=>[]);await loadAppointments();renderStats();renderLeads()}
+async function loadLeads(){if(!salon)return;leads=await api('/rest/v1/leads?salon_id=eq.'+salon.id+'&select=*&order=created_at.desc').catch(()=>[]);await loadAppointments();renderStats();renderBookingSnapshot();renderLeads()}
 async function loadAppointments(){if(!salon)return;appointments=await api('/rest/v1/appointments?salon_id=eq.'+salon.id+'&select=*&order=appointment_date.asc,appointment_time.asc,created_at.desc').catch(()=>[])}
+function renderBookingSnapshot(){
+  const box=$('bookingSnapshotList');
+  if(!box||!salon||publicMode)return;
+  const pad=n=>String(n).padStart(2,'0');
+  const now=new Date();
+  const today=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+  const rows=appointments||[];
+  const todayRows=rows.filter(x=>x.appointment_date===today);
+  const requested=rows.filter(x=>x.status==='Requested').length;
+  const confirmed=rows.filter(x=>x.status==='Confirmed').length;
+  const completed=rows.filter(x=>x.status==='Completed').length;
+  const set=(id,val)=>{const el=$(id);if(el)el.textContent=String(val)};
+  set('statLeads',todayRows.length);
+  set('statFollow',requested);
+  set('statRate',confirmed);
+  set('statConverted',completed);
+  const rank=(a,b)=>{
+    const da=(a.appointment_date||'9999-99-99')+' '+(a.appointment_time||'99:99:99');
+    const db=(b.appointment_date||'9999-99-99')+' '+(b.appointment_time||'99:99:99');
+    return da.localeCompare(db);
+  };
+  const upcoming=rows.filter(x=>x.appointment_date>=today&&x.status!=='Cancelled'&&x.status!=='Completed').sort(rank);
+  const recent=rows.filter(x=>x.appointment_date<today||x.status==='Completed').sort((a,b)=>rank(b,a));
+  const display=upcoming.concat(recent).slice(0,4);
+  const safe=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  box.querySelector('.bookingSnapshotRows').innerHTML=display.length?display.map(x=>{
+    const tm=x.appointment_time?String(x.appointment_time).slice(0,5):'';
+    return '<div class="bookingSnapshotRow"><div><div class="bookingSnapshotName">'+safe(x.customer_name||'Customer')+'</div><div class="bookingSnapshotMeta">'+safe(x.service||'Service')+' · '+safe(x.appointment_date||'—')+(tm?' · '+safe(tm):'')+(x.source?' · '+safe(x.source):'')+'</div></div><span class="bookingSnapshotStatus">'+safe(x.status||'Requested')+'</span></div>';
+  }).join(''):'<div class="bookingSnapshotEmpty">No bookings yet.</div>';
+}
 function renderCatalog(){$('services').innerHTML=services.map(s=>'<div class="card"><span class="badge">Service</span><h3>'+esc(s.name)+'</h3><div class="servicePrice">₹'+Number(s.price||0).toLocaleString('en-IN')+'</div><p class="muted">'+esc(s.description||'Professional salon service.')+'</p></div>').join('');$('offers').innerHTML=offers.map(o=>'<div class="card offer"><span class="badge">Offer</span><h3>'+esc(o.title)+'</h3><p class="muted">'+esc(o.description||'Limited-time salon offer.')+'</p></div>').join('');$('leadService').innerHTML='<option value="">Select a service</option>'+services.map(s=>'<option>'+esc(s.name)+'</option>').join('');$('serviceList').innerHTML=services.map(s=>'<div class="item"><div class="itemInfo"><b>'+esc(s.name)+'</b><div class="muted">₹'+Number(s.price||0).toLocaleString('en-IN')+' · '+esc(s.description||'')+'</div></div><span class="badge">Active</span></div>').join('')||'<div class="empty">No services yet.</div>';$('offerList').innerHTML=offers.map(o=>'<div class="item"><div class="itemInfo"><b>'+esc(o.title)+'</b><div class="muted">'+esc(o.description||'')+'</div></div><span class="badge">Active</span></div>').join('')||'<div class="empty">No offers yet.</div>';if(salon)$('publicUrl').value=REDIRECT+'?salon='+encodeURIComponent(salon.id)}
 function renderStats(){const total=leads.length,n=leads.filter(x=>x.status==='Requested').length,c=leads.filter(x=>x.status==='Confirmed').length,cv=leads.filter(x=>x.status==='Completed').length,rate=total?Math.round(cv*100/total):0;$('statLeads').textContent=n;$('statFollow').textContent=c;$('statConverted').textContent=cv;$('statRate').textContent=rate+'%';$('dashTotal').textContent=total;$('dashNew').textContent=n;$('dashContacted').textContent=c;$('dashConverted').textContent=cv}
 function openCustomer360(customerId,phone,name){if(!salon||(!customerId&&!phone)){alert('Customer record is not available yet.');return}const qs=new URLSearchParams({salon:salon.id,customer:customerId||'',phone:phone||'',name:name||''});location.href='customer360.html?'+qs.toString()}
@@ -68,83 +98,4 @@ async function loadPublic(id){try{const r=await fetch(EDGE+'/public-salon?id='+e
 async function boot(){const params=new URLSearchParams(location.search),publicId=params.get('salon');if(publicId){publicMode=true;await loadPublic(publicId);return}const hash=location.hash.startsWith('#')?new URLSearchParams(location.hash.slice(1)):null;if(hash?.get('access_token')){saveSession({access_token:hash.get('access_token'),refresh_token:hash.get('refresh_token'),expires_in:Number(hash.get('expires_in')||3600),token_type:hash.get('token_type')||'bearer'});history.replaceState({},document.title,location.pathname+location.search)}if(!session)session=loadStored();if(session?.refresh_token){try{await refreshSession()}catch(e){}}if(session?.access_token){user=await getUser();if(!user)saveSession(null)}if(user){try{await loadSalon();await loadCatalog();await loadLeads();showOwner(true);renderOwnerData();switchTab('demo')}catch(e){$('authMessage').textContent=e.message;showOwner(false)}}else{showOwner(false);switchTab('login')}}
 $('loginBtn').onclick=signIn;$('editSettingsBtn').onclick=()=>setSettingsEdit(true);$('cancelSettingsBtn').onclick=()=>setSettingsEdit(false);$('appointmentBtn').onclick=()=>{$('leadForm').scrollIntoView({behavior:'smooth'});setTimeout(()=>$('leadName').focus(),250)};$('newLeadBtn').onclick=()=>{switchTab('demo');setTimeout(()=>$('leadForm').scrollIntoView({behavior:'smooth'}),100)};$('leadForm').onsubmit=submitLead;$('leadSearch').oninput=renderLeads;$('leadFilter').onchange=renderLeads;$('addServiceBtn').onclick=addService;$('addOfferBtn').onclick=addOffer;$('saveSettingsBtn').onclick=saveSettings;$('findBusinessBtn').onclick=findBusiness;$('syncGoogleBtn').onclick=syncGoogle;$('scanWebsiteBtn').onclick=scanBusinessWebsite;$('copyUrlBtn').onclick=async()=>{try{await navigator.clipboard.writeText($('publicUrl').value);alert('Public link copied.')}catch(e){$('publicUrl').select();document.execCommand('copy');alert('Public link copied.')}};$('openPageBtn').onclick=()=>window.open($('publicUrl').value,'_blank');document.querySelectorAll('.nav button[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));$('openAppointmentsBtn')?.addEventListener('click',()=>{if(salon)window.location.href='appointments.html?salon='+encodeURIComponent(salon.id)});$('manageAppointmentsBtn')?.addEventListener('click',()=>{if(salon)window.location.href='appointments.html?salon='+encodeURIComponent(salon.id)});boot();
 })();
-</script><script>(function(){
-  async function loadBookingSnapshot(){
-    const box=document.getElementById('bookingSnapshotList');
-    if(!box)return;
-    let session=null;
-    try{session=JSON.parse(localStorage.getItem('slm_session')||'null')}catch(e){}
-    if(!session||!session.access_token){setTimeout(loadBookingSnapshot,1200);return}
-
-    const token=session.access_token;
-    let uid=session.user&&session.user.id;
-    if(!uid){
-      try{
-        const part=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
-        uid=JSON.parse(atob(part.padEnd(part.length+(4-part.length%4))%4)).sub;
-      }catch(e){}
-    }
-    if(!uid){box.querySelector('.bookingSnapshotRows').innerHTML='<div class="bookingSnapshotEmpty">Owner session is not ready yet.</div>';return}
-
-    const BASE='https://dhiimviybpbggvuuzwfh.supabase.co/rest/v1/';
-    const HEAD={'apikey':'sb_publishable_IOXACVkfe217drLmK0UCcA_ADmDLTg7','Authorization':'Bearer '+token};
-    try{
-      const sr=await fetch(BASE+'salons?owner_id=eq.'+encodeURIComponent(uid)+'&select=id&limit=1',{headers:HEAD});
-      if(!sr.ok)throw new Error('salon lookup failed');
-      const salons=await sr.json();
-      const salonId=salons[0]&&salons[0].id;
-      if(!salonId)throw new Error('salon not found');
-
-      const ar=await fetch(BASE+'appointments?salon_id=eq.'+encodeURIComponent(salonId)+'&select=id,customer_name,customer_phone,service,appointment_date,appointment_time,status,source&order=appointment_date.asc,appointment_time.asc&limit=20',{headers:HEAD});
-      if(!ar.ok)throw new Error('booking lookup failed');
-      const rows=await ar.json();
-      const today=new Date().toLocaleDateString('en-CA');
-      const todayRows=rows.filter(x=>x.appointment_date===today);
-      const requested=rows.filter(x=>x.status==='Requested').length;
-      const confirmed=rows.filter(x=>x.status==='Confirmed').length;
-      const completed=rows.filter(x=>x.status==='Completed').length;
-      const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=String(val)};
-      set('statLeads',todayRows.length);set('statFollow',requested);set('statRate',confirmed);set('statConverted',completed);
-
-      const active=rows.filter(x=>x.status==='Requested'||x.status==='Confirmed');
-      const display=(active.length?active:rows.slice(-6)).slice(0,4);
-      const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-      box.querySelector('.bookingSnapshotRows').innerHTML=display.length?display.map(x=>{
-        const time=x.appointment_time?String(x.appointment_time).slice(0,5):'';
-        return '<div class="bookingSnapshotRow"><div><div class="bookingSnapshotName">'+esc(x.customer_name||'Customer')+'</div><div class="bookingSnapshotMeta">'+esc(x.service||'Service')+' · '+esc(x.appointment_date||'—')+(time?' · '+esc(time):'')+(x.source?' · '+esc(x.source):'')+'</div></div><span class="bookingSnapshotStatus">'+esc(x.status||'Requested')+'</span></div>';
-      }).join(''):'<div class="bookingSnapshotEmpty">No bookings yet.</div>';
-    }catch(e){
-      box.querySelector('.bookingSnapshotRows').innerHTML='<div class="bookingSnapshotEmpty">Booking details unavailable right now.</div>';
-      console.error(e);
-    }
-  }
-  setTimeout(loadBookingSnapshot,500);
-})();</script><script>(function(){
-  async function loadBookingSnapshot(){
-    const box=document.getElementById('bookingSnapshotList');
-    if(!box)return;
-    let session=null;
-    try{session=JSON.parse(localStorage.getItem('slm_session')||'null')}catch(e){}
-    if(!session||!session.access_token){setTimeout(loadBookingSnapshot,1200);return}
-    const token=session.access_token;
-    let uid=session.user&&session.user.id;
-    if(!uid){try{const part=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');uid=JSON.parse(atob(part.padEnd(part.length+(4-part.length%4))%4)).sub}catch(e){}}
-    if(!uid){box.querySelector('.bookingSnapshotRows').innerHTML='<div class="bookingSnapshotEmpty">Owner session is not ready yet.</div>';return}
-    const BASE='https://dhiimviybpbggvuuzwfh.supabase.co/rest/v1/';
-    const HEAD={'apikey':'sb_publishable_IOXACVkfe217drLmK0UCcA_ADmDLTg7','Authorization':'Bearer '+token};
-    try{
-      const sr=await fetch(BASE+'salons?owner_id=eq.'+encodeURIComponent(uid)+'&select=id&limit=1',{headers:HEAD});
-      if(!sr.ok)throw new Error('salon lookup failed');
-      const salons=await sr.json();const salonId=salons[0]&&salons[0].id;if(!salonId)throw new Error('salon not found');
-      const ar=await fetch(BASE+'appointments?salon_id=eq.'+encodeURIComponent(salonId)+'&select=id,customer_name,customer_phone,service,appointment_date,appointment_time,status,source&order=appointment_date.asc,appointment_time.asc&limit=20',{headers:HEAD});
-      if(!ar.ok)throw new Error('booking lookup failed');
-      const rows=await ar.json(),today=new Date().toLocaleDateString('en-CA');
-      const todayRows=rows.filter(x=>x.appointment_date===today),requested=rows.filter(x=>x.status==='Requested').length,confirmed=rows.filter(x=>x.status==='Confirmed').length,completed=rows.filter(x=>x.status==='Completed').length;
-      const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=String(val)};set('statLeads',todayRows.length);set('statFollow',requested);set('statRate',confirmed);set('statConverted',completed);
-      const active=rows.filter(x=>x.status==='Requested'||x.status==='Confirmed'),display=(active.length?active:rows.slice(-6)).slice(0,4);
-      const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-      box.querySelector('.bookingSnapshotRows').innerHTML=display.length?display.map(x=>{const time=x.appointment_time?String(x.appointment_time).slice(0,5):'';return '<div class="bookingSnapshotRow"><div><div class="bookingSnapshotName">'+esc(x.customer_name||'Customer')+'</div><div class="bookingSnapshotMeta">'+esc(x.service||'Service')+' · '+esc(x.appointment_date||'—')+(time?' · '+esc(time):'')+(x.source?' · '+esc(x.source):'')+'</div></div><span class="bookingSnapshotStatus">'+esc(x.status||'Requested')+'</span></div>'}).join(''):'<div class="bookingSnapshotEmpty">No bookings yet.</div>';
-    }catch(e){box.querySelector('.bookingSnapshotRows').innerHTML='<div class="bookingSnapshotEmpty">Booking details unavailable right now.</div>';console.error(e)}
-  }
-  setTimeout(loadBookingSnapshot,500);
-})();</script></body></html>
+</script></body></html>
