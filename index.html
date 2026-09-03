@@ -215,23 +215,4 @@ async function loadPublic(id){try{const r=await fetch(EDGE+'/public-salon?id='+e
 async function boot(){const params=new URLSearchParams(location.search),publicId=params.get('salon');if(publicId){publicMode=true;await loadPublic(publicId);return}const hash=location.hash.startsWith('#')?new URLSearchParams(location.hash.slice(1)):null;if(hash?.get('access_token')){saveSession({access_token:hash.get('access_token'),refresh_token:hash.get('refresh_token'),expires_in:Number(hash.get('expires_in')||3600),token_type:hash.get('token_type')||'bearer'});history.replaceState({},document.title,location.pathname+location.search)}if(!session)session=loadStored();if(session?.refresh_token){try{await refreshSession()}catch(e){}}if(session?.access_token){user=await getUser();if(!user)saveSession(null)}if(user){try{await loadSalon();await loadCatalog();await loadLeads();showOwner(true);renderOwnerData();renderDashboard();switchTab('dashboard')}catch(e){$('authMessage').textContent=e.message;showOwner(false)}}else{showOwner(false);switchTab('login')}}
 $('loginBtn').onclick=signIn;$('editSettingsBtn').onclick=()=>setSettingsEdit(true);$('cancelSettingsBtn').onclick=()=>setSettingsEdit(false);$('appointmentBtn').onclick=()=>{$('leadForm').scrollIntoView({behavior:'smooth'});setTimeout(()=>$('leadName').focus(),250)};$('newLeadBtn').onclick=()=>{switchTab('demo');setTimeout(()=>$('leadForm').scrollIntoView({behavior:'smooth'}),100)};$('leadForm').onsubmit=submitLead;$('leadSearch').oninput=renderLeads;$('leadFilter').onchange=renderLeads;$('addServiceBtn').onclick=addService;$('addOfferBtn').onclick=addOffer;$('saveSettingsBtn').onclick=saveSettings;$('findBusinessBtn').onclick=findBusiness;$('syncGoogleBtn').onclick=syncGoogle;$('scanWebsiteBtn').onclick=scanBusinessWebsite;$('copyUrlBtn').onclick=async()=>{try{await navigator.clipboard.writeText($('publicUrl').value);alert('Public link copied.')}catch(e){$('publicUrl').select();document.execCommand('copy');alert('Public link copied.')}};$('openPageBtn').onclick=()=>window.open($('publicUrl').value,'_blank');document.querySelectorAll('.nav button[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));$('openAppointmentsBtn')?.addEventListener('click',()=>{if(salon)window.location.href='appointments.html?salon='+encodeURIComponent(salon.id)});$('manageAppointmentsBtn')?.addEventListener('click',()=>{if(salon)window.location.href='appointments.html?salon='+encodeURIComponent(salon.id)});boot();
 })();
-<script>
-(function(){
-  function openCustomerWebsiteSafe(){
-    try{
-      if(typeof salon==='undefined'||!salon||!salon.id){alert('Please complete Salon Setup first.');return;}
-      var url='salon.html?salon='+encodeURIComponent(salon.id)+'&preview=1';
-      var w=window.open(url,'_blank');
-      if(!w){window.location.href=url;}
-    }catch(e){alert('Unable to open Customer Website: '+(e.message||e));}
-  }
-  document.addEventListener('click',function(e){
-    var website=e.target.closest('#customerWebsiteBtn,#openCustomerWebsiteBtn');
-    if(website){e.preventDefault();e.stopPropagation();openCustomerWebsiteSafe();return;}
-    var nav=e.target.closest('.nav button[data-tab]');
-    if(nav){e.preventDefault();e.stopPropagation();var tab=nav.getAttribute('data-tab');if(tab){switchTab(tab);}return;}
-  },true);
-  window.openCustomerWebsite=openCustomerWebsiteSafe;
-})();
-</script></script>
-</body></html>
+</script></body></html>
