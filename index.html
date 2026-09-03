@@ -13,7 +13,7 @@
 </head>
 <body>
 <div id="publicBar" class="publicBar hidden">Customer view · <span id="publicSalonName"></span></div>
-<header class="topbar"><div class="logo">Salon <span>Lead Machine</span></div><div class="userbar" id="userbar"></div><nav class="nav" id="nav"><button class="active" data-tab="dashboard" type="button">Dashboard</button><button type="button" onclick="location.href='bookings.html'">Bookings &amp; Customers</button><button data-tab="catalog" type="button">Services & Offers</button><button data-tab="demo" type="button">Customer Website</button><button data-tab="setup" type="button">Auto Setup</button><button data-tab="settings" type="button">Salon Setup</button></nav></header>
+<header class="topbar"><div class="logo">Salon <span>Lead Machine</span></div><div class="userbar" id="userbar"></div><nav class="nav" id="nav"><button class="active" data-tab="dashboard" type="button">Dashboard</button><button type="button" onclick="location.href='bookings.html'">Bookings &amp; Customers</button><button data-tab="catalog" type="button">Services & Offers</button><button type="button" onclick="openCustomerWebsite()">Customer Website ↗</button><button data-tab="setup" type="button">Auto Setup</button><button data-tab="settings" type="button">Salon Setup</button></nav></header>
 <main class="shell">
 <section id="login" class="panel active"><div class="card auth"><span class="badge">Salon Owner Access</span><h1>Turn salon enquiries into appointments.</h1><p class="muted">Sign in with Google to create your salon workspace, connect your Google Business listing, discover website information and track every lead.</p><button id="loginBtn" class="primary" type="button">Continue with Google</button><p id="authMessage" class="muted"></p></div></section>
 
@@ -61,7 +61,7 @@
         <button class="primary" type="button" onclick="location.href='bookings.html'">+ Create Booking</button>
         <button type="button" onclick="location.href='bookings.html'">View Customers</button>
         <button type="button" onclick="switchTab('catalog')">Manage Services & Offers</button>
-        <button type="button" onclick="switchTab('demo')">Open Customer Website</button>
+        <button type="button" onclick="openCustomerWebsite()">Open Customer Website ↗</button>
         <button type="button" onclick="switchTab('settings')">Salon Setup</button>
       </div>
     </div>
@@ -100,6 +100,7 @@ function loadStored(){try{return JSON.parse(localStorage.getItem('slm_session')|
 async function refreshSession(){if(!session?.refresh_token)return false;const r=await fetch(SUPA+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'apikey':KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});if(!r.ok){saveSession(null);return false}saveSession(await r.json());return true}
 async function api(path,opts={},retry=true){const token=session?.access_token;const headers=Object.assign({'apikey':KEY,'Authorization':'Bearer '+(token||KEY),'Content-Type':'application/json'},opts.headers||{});const r=await fetch(SUPA+path,Object.assign({},opts,{headers}));if(r.status===401&&retry&&session?.refresh_token){if(await refreshSession())return api(path,opts,false)}if(!r.ok){const t=await r.text();let msg=t;try{const j=JSON.parse(t);msg=j.message||j.error||t}catch(e){}throw new Error(msg||('Request failed '+r.status))}if(r.status===204)return null;return r.json()}
 async function edge(name,body){if(!session?.access_token)throw new Error('Please sign in first.');const r=await fetch(EDGE+'/'+name,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+session.access_token},body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Service request failed.');return d}
+function openCustomerWebsite(){if(!salon?.id){alert('Salon is not configured yet.');return}window.open('salon.html?salon='+encodeURIComponent(salon.id),'_blank','noopener');}
 function switchTab(tab){document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));$(tab)?.classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
 function signIn(){const msg=$('authMessage');if(msg)toast(msg,'Opening Google sign-in…');const redirect=window.location.origin+window.location.pathname;const url=SUPA+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(redirect);window.location.href=url}
 async function signOut(){saveSession(null);user=null;salon=null;leads=[];services=[];offers=[];showOwner(false);switchTab('login')}
