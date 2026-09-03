@@ -1,0 +1,44 @@
+name: Integrate appointments into owner app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/integrate-appointments.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch owner app
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old='<button data-tab="leads" type="button">Leads</button><button data-tab="catalog" type="button">Services & Offers</button>'
+          new='<button data-tab="leads" type="button">Leads</button><button data-tab="appointments" type="button">Appointments</button><button data-tab="catalog" type="button">Services & Offers</button>'
+          if old in s and 'data-tab="appointments"' not in s:
+              s=s.replace(old,new,1)
+          marker='<section id="catalog" class="panel">'
+          section='''<section id="appointments" class="panel"><div class="sectionHead"><div><h2>Appointments</h2><div class="muted">Review booking requests and confirm, reschedule or cancel customer appointments.</div></div><button id="openAppointmentsBtn" class="secondary" type="button">Open Appointment Manager</button></div><div class="card" style="margin-top:16px"><p><b>Booking workflow</b></p><p class="muted">New online bookings appear as <b>Requested</b>. Open the Appointment Manager to confirm, reschedule or cancel the booking and contact the customer on WhatsApp.</p><div class="actions"><button id="manageAppointmentsBtn" class="primary" type="button">Manage Appointments</button></div></div></section>'''
+          if marker in s and 'id="appointments"' not in s:
+              s=s.replace(marker,section+marker,1)
+          needle="document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));"
+          repl="document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{if(b.dataset.tab==='appointments'&&salon){window.location.href='appointments.html?salon='+encodeURIComponent(salon.id)}else switchTab(b.dataset.tab)});$('openAppointmentsBtn')?.addEventListener('click',()=>{if(salon)window.location.href='appointments.html?salon='+encodeURIComponent(salon.id)});$('manageAppointmentsBtn')?.addEventListener('click',()=>{if(salon)window.location.href='appointments.html?salon='+encodeURIComponent(salon.id)});"
+          if needle in s and 'manageAppointmentsBtn' not in s:
+              s=s.replace(needle,repl,1)
+          p.write_text(s)
+          PY
+      - name: Commit integration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Add appointments to owner application'
+          git push
