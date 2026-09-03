@@ -15,56 +15,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Update Customer Website navigation and preview mode
+      - name: Patch Customer Website navigation
         run: |
           python - <<'PY'
           from pathlib import Path
-
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          old = '<button data-tab="demo" type="button">Customer Website</button>'
-          new = '<button type="button" onclick="openCustomerWebsite()">Customer Website ↗</button>'
-          if old in s:
-              s = s.replace(old, new, 1)
+          s = s.replace('<button data-tab="demo" type="button">Customer Website</button>', '<button id="customerWebsiteBtn" type="button">Customer Website ↗</button>', 1)
+          s = s.replace('<button type="button" onclick="openCustomerWebsite()">Customer Website ↗</button>', '<button id="customerWebsiteBtn" type="button">Customer Website ↗</button>', 1)
+          s = s.replace('<button type="button" onclick="switchTab(\'demo\')">Open Customer Website</button>', '<button id="openCustomerWebsiteBtn" type="button">Open Customer Website ↗</button>', 1)
+          s = s.replace('<button type="button" onclick="openCustomerWebsite()">Open Customer Website ↗</button>', '<button id="openCustomerWebsiteBtn" type="button">Open Customer Website ↗</button>', 1)
 
-          old_quick = '<button type="button" onclick="switchTab(\'demo\')">Open Customer Website</button>'
-          new_quick = '<button type="button" onclick="openCustomerWebsite()">Open Customer Website ↗</button>'
-          if old_quick in s:
-              s = s.replace(old_quick, new_quick, 1)
-
-          marker = "function switchTab(tab){"
-          fn = "function openCustomerWebsite(){if(!salon?.id){alert('Salon is not configured yet.');return}window.open('salon.html?salon='+encodeURIComponent(salon.id)+'&preview=1','_blank','noopener');}\n"
-          if 'function openCustomerWebsite()' not in s and marker in s:
-              s = s.replace(marker, fn + marker, 1)
-          p.write_text(s, encoding='utf-8')
-
-          p = Path('salon.html')
-          s = p.read_text(encoding='utf-8')
-
-          # Repair any earlier malformed banner insertion.
-          s = s.replace('<body>`<div id="ownerPreview" class="ownerPreview" style="display:none"><span>👀 Preview Mode · This is your customer website</span><a href="index.html">← Back to Dashboard</a><a class="secondaryPreview" href="index.html?tab=catalog">Edit Website</a></div>`<main class="wrap">', '<body><div id="ownerPreview" class="ownerPreview" style="display:none"><span>👀 Preview Mode · This is your customer website</span><a href="index.html">← Back to Dashboard</a><a class="secondaryPreview" href="index.html?tab=catalog">Edit Website</a></div><main class="wrap">')
-          s = s.replace('@media(max-width:520px){.ownerPreview{font-size:11px}}}</style>', '@media(max-width:520px){.ownerPreview{font-size:11px}}</style>')
-
-          css_marker = '</style></head>'
-          css = '.ownerPreview{position:sticky;top:0;z-index:50;background:#17211b;color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:800}.ownerPreview span{opacity:.9}.ownerPreview a{color:#fff;text-decoration:none;background:#28654b;padding:7px 11px;border-radius:9px}.ownerPreview a.secondaryPreview{background:#dce9df;color:#164b37}@media(max-width:520px){.ownerPreview{font-size:11px}}'
-          if '.ownerPreview{' not in s and css_marker in s:
-              s = s.replace(css_marker, css + '</style></head>', 1)
-
-          old_const = "const q=new URLSearchParams(location.search),salonId=q.get('salon'),source=q.get('source')||'Website';"
-          new_const = "const q=new URLSearchParams(location.search),salonId=q.get('salon'),source=q.get('source')||'Website',preview=q.get('preview')==='1';"
-          if old_const in s:
-              s = s.replace(old_const, new_const, 1)
-
-          old_body = '<body><main class="wrap">'
-          new_body = '<body><div id="ownerPreview" class="ownerPreview" style="display:none"><span>👀 Preview Mode · This is your customer website</span><a href="index.html">← Back to Dashboard</a><a class="secondaryPreview" href="index.html?tab=catalog">Edit Website</a></div><main class="wrap">'
-          if old_body in s:
-              s = s.replace(old_body, new_body, 1)
-
-          old_load = 'async function load(){if(!salonId){'
-          new_load = "async function load(){if(preview){const bar=document.getElementById('ownerPreview');if(bar)bar.style.display='flex'}if(!salonId){"
-          if old_load in s:
-              s = s.replace(old_load, new_load, 1)
+          fn = "function openCustomerWebsite(){if(typeof salon==='undefined'||!salon||!salon.id){alert('Please complete Salon Setup first.');return false;}var u='salon.html?salon='+encodeURIComponent(salon.id)+'&preview=1';window.open(u,'_blank');return false;}"
+          if 'function openCustomerWebsite()' not in s:
+              s = s.replace('</script>', fn + "\ndocument.addEventListener('click',function(e){var b=e.target.closest('#customerWebsiteBtn,#openCustomerWebsiteBtn');if(b){e.preventDefault();openCustomerWebsite();}});\n</script>", 1)
 
           p.write_text(s, encoding='utf-8')
           PY
@@ -73,10 +38,10 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html salon.html
+          git add index.html
           if git diff --cached --quiet; then
             echo 'No changes needed.'
             exit 0
           fi
-          git commit -m 'Repair Customer Website preview markup'
+          git commit -m 'Fix Customer Website click handler'
           git push
