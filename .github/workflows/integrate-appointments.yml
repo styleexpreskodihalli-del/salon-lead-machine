@@ -24,6 +24,16 @@ jobs:
           p = Path('index.html')
           s = p.read_text()
           s = re.sub(r'<button[^>]*data-tab="leads"[^>]*>Bookings &amp; Customers</button>', '<button type="button" onclick="location.href=\'bookings.html\'">Bookings &amp; Customers</button>', s, count=1)
+
+          # The bookings button has no data-tab because it is a real page. Only wire
+          # tab switching for buttons that actually have a data-tab value.
+          s = s.replace("document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{if(b.dataset.tab==='appointments'&&salon){window.location.href='appointments.html?salon='+encodeURIComponent(salon.id)}else switchTab(b.dataset.tab)});", "document.querySelectorAll('.nav button[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));")
+
+          # Keep owner dashboard booking terminology aligned with the booking-first model.
+          s = s.replace('<span>Pending</span>', '<span>Needs Confirmation</span>')
+          s = s.replace('<span>Confirmed</span>', '<span>Confirmed</span>')
+          s = s.replace('<span>Completed</span>', '<span>Completed</span>')
+
           p.write_text(s)
 
           p = Path('bookings.html')
@@ -43,7 +53,6 @@ jobs:
           s = s[:start] + new_status + s[end:]
 
           s = s.replace("if(action==='confirm')status(a.dataset.id,'Confirmed');", "if(action==='confirm'){status(a.dataset.id,'Confirmed').then(()=>{const row=appointments.find(x=>x.id===a.dataset.id);if(row){const nm=row.customer_name||'Customer';const ph=(row.customer_phone||'').replace(/\\D/g,'');if(ph)window.open('https://wa.me/'+ph+'?text='+encodeURIComponent('Hi '+nm+', your salon booking has been confirmed for '+row.appointment_date+' at '+String(row.appointment_time||'').slice(0,5)+'. See you soon!'),'_blank')}})};")
-          # Guard against the semicolon-before-else syntax error introduced by the confirmation branch.
           s = s.replace("}})};else if(action==='complete')", "}})}else if(action==='complete')")
           p.write_text(s)
           PY
@@ -53,5 +62,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html bookings.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Fix booking action handler syntax'
+          git commit -m 'Fix dashboard tab navigation'
           git push
