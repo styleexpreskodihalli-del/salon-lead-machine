@@ -20,7 +20,6 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          # Owner dashboard: Customer Website opens the real public salon page in a new tab.
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
@@ -38,12 +37,14 @@ jobs:
           fn = "function openCustomerWebsite(){if(!salon?.id){alert('Salon is not configured yet.');return}window.open('salon.html?salon='+encodeURIComponent(salon.id)+'&preview=1','_blank','noopener');}\n"
           if 'function openCustomerWebsite()' not in s and marker in s:
               s = s.replace(marker, fn + marker, 1)
-
           p.write_text(s, encoding='utf-8')
 
-          # Public salon page: owner preview mode gets a small control bar.
           p = Path('salon.html')
           s = p.read_text(encoding='utf-8')
+
+          # Repair any earlier malformed banner insertion.
+          s = s.replace('<body>`<div id="ownerPreview" class="ownerPreview" style="display:none"><span>👀 Preview Mode · This is your customer website</span><a href="index.html">← Back to Dashboard</a><a class="secondaryPreview" href="index.html?tab=catalog">Edit Website</a></div>`<main class="wrap">', '<body><div id="ownerPreview" class="ownerPreview" style="display:none"><span>👀 Preview Mode · This is your customer website</span><a href="index.html">← Back to Dashboard</a><a class="secondaryPreview" href="index.html?tab=catalog">Edit Website</a></div><main class="wrap">')
+          s = s.replace('@media(max-width:520px){.ownerPreview{font-size:11px}}}</style>', '@media(max-width:520px){.ownerPreview{font-size:11px}}</style>')
 
           css_marker = '</style></head>'
           css = '.ownerPreview{position:sticky;top:0;z-index:50;background:#17211b;color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:800}.ownerPreview span{opacity:.9}.ownerPreview a{color:#fff;text-decoration:none;background:#28654b;padding:7px 11px;border-radius:9px}.ownerPreview a.secondaryPreview{background:#dce9df;color:#164b37}@media(max-width:520px){.ownerPreview{font-size:11px}}'
@@ -77,5 +78,5 @@ jobs:
             echo 'No changes needed.'
             exit 0
           fi
-          git commit -m 'Add owner preview mode to Customer Website'
+          git commit -m 'Repair Customer Website preview markup'
           git push
