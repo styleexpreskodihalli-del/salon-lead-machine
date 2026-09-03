@@ -1,4 +1,4 @@
-name: Refine booking and customer operating workspace
+name: Fix booking-first workspace
 
 on:
   push:
@@ -14,15 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Refine booking-first customer workspace
+      - name: Update owner workspace
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
           p = Path('index.html')
           s = p.read_text()
 
-          # Product language: a booking request is the operational event, not a generic CRM lead.
+          # Navigation and wording.
           s = s.replace('Customers &amp; Calendar', 'Bookings &amp; Customers')
           s = s.replace('Customer Pipeline', 'Bookings &amp; Customers')
           s = s.replace('Manage customers, enquiries, appointments and follow-ups from one workspace.', 'Every booking request, customer and appointment in one operational workspace.')
@@ -30,53 +29,48 @@ jobs:
           s = s.replace('<span>New</span></div></div><div class="mini"><strong id="dashContacted">0</strong><span>Contacted</span>', '<span>Pending</span></div></div><div class="mini"><strong id="dashContacted">0</strong><span>Confirmed</span>')
           s = s.replace('<strong id="dashConverted">0</strong><span>Converted</span>', '<strong id="dashConverted">0</strong><span>Completed</span>')
           s = s.replace('<button id="newLeadBtn" class="primary" type="button">+ New Lead</button>', '<button id="newLeadBtn" class="primary" type="button">+ Create Booking</button>')
-          s = s.replace('Search customer, phone or service...', 'Search customer, phone or service...')
+          s = s.replace('<option value="All">All statuses</option><option>New</option><option>Contacted</option><option>Converted</option>', '<option value="All">All bookings</option><option>Requested</option><option>Confirmed</option><option>Completed</option><option>Cancelled</option><option>No Show</option>')
 
-          # Add a visible data-flow explanation once, directly above the request list.
-          marker = '<div class="toolbar"><input id="leadSearch"'
-          flow = '''<div class="card" id="bookingFlow" style="margin-top:18px;background:#f8faf8">
-            <div class="sectionHead"><div><h3>Live Booking &amp; Customer Flow</h3><div class="muted">This is the operating flow behind every customer request.</div></div><span class="badge">Live data</span></div>
-            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:center">
-              <div class="mini"><strong>1</strong><span>Request received</span></div><div style="text-align:center;color:var(--muted)">→</div>
-              <div class="mini"><strong>2</strong><span>Existing / New customer</span></div><div style="text-align:center;color:var(--muted)">→</div>
+          # Visible operational data flow.
+          if 'id="bookingFlow"' not in s:
+              marker = '<div class="toolbar"><input id="leadSearch"'
+              flow = '''<div class="card" id="bookingFlow" style="margin-top:18px;background:#f8faf8">
+            <div class="sectionHead"><div><h3>Live Booking &amp; Customer Flow</h3><div class="muted">One request becomes one customer journey.</div></div><span class="badge">Live data</span></div>
+            <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+              <div class="mini"><strong>1</strong><span>Request received</span></div>
+              <div class="mini"><strong>2</strong><span>Existing customer or create new</span></div>
               <div class="mini"><strong>3</strong><span>Booking requested</span></div>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px">
-              <div class="mini"><strong>4</strong><span>Confirm / Reschedule / Cancel</span></div><div class="mini"><strong>5</strong><span>Visit → Payment</span></div><div class="mini"><strong>6</strong><span>Loyalty → Repeat → Referral</span></div>
+              <div class="mini"><strong>4</strong><span>Confirm / Reschedule / Cancel</span></div>
+              <div class="mini"><strong>5</strong><span>Visited → Payment</span></div>
+              <div class="mini"><strong>6</strong><span>Loyalty → Repeat → Referral</span></div>
             </div>
           </div>
           '''
-          if 'id="bookingFlow"' not in s and marker in s:
               s = s.replace(marker, flow + marker, 1)
 
-          # Use appointment status as the operational status in the booking list.
-          s = re.sub(r'function renderStats\(\)\{.*?\}\nfunction renderLeads', '''function renderStats(){const total=appointments.length,req=appointments.filter(x=>x.status==='Requested').length,conf=appointments.filter(x=>x.status==='Confirmed').length,done=appointments.filter(x=>x.status==='Completed').length;$('statLeads').textContent=req;$('statFollow').textContent=conf;$('statConverted').textContent=done;$('statRate').textContent=(total?Math.round(done*100/total):0)+'%';$('dashTotal').textContent=total;$('dashNew').textContent=req;$('dashContacted').textContent=conf;$('dashConverted').textContent=done}
-function renderLeads''', s, count=1, flags=re.S)
+          # Replace the old lead-centric rendering with booking-centric rendering.
+          start = s.find('function renderStats(){')
+          end = s.find('async function addService', start)
+          if start >= 0 and end > start:
+              functions = '''function renderStats(){const total=appointments.length,req=appointments.filter(x=>x.status==='Requested').length,conf=appointments.filter(x=>x.status==='Confirmed').length,done=appointments.filter(x=>x.status==='Completed').length;$('statLeads').textContent=req;$('statFollow').textContent=conf;$('statConverted').textContent=done;$('statRate').textContent=(total?Math.round(done*100/total):0)+'%';$('dashTotal').textContent=total;$('dashNew').textContent=req;$('dashContacted').textContent=conf;$('dashConverted').textContent=done}
+function openCustomer360(customerId,phone,name){alert((name||'Customer')+'\\n'+(phone||'')+'\\n\\nThis booking is linked to the customer record. Customer 360 with visits, spend and loyalty is the next layer.')}
+function renderLeads(){const q=($('leadSearch')?.value||'').toLowerCase().trim(),f=$('leadFilter')?.value||'All';const list=appointments.filter(a=>(f==='All'||a.status===f)&&(!q||[a.customer_name,a.customer_phone,a.service,a.source,a.notes].join(' ').toLowerCase().includes(q)));if(!$('leadTable'))return;if(!list.length){$('leadTable').innerHTML='<div class="empty">No booking requests match your filters.</div>';return}$('leadTable').innerHTML='<div class="tableWrap"><table class="table"><thead><tr><th>Customer</th><th>Booking</th><th>Source</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+list.map(a=>'<tr><td><button class="smallBtn customerBtn" data-customer="'+esc(a.customer_id||'')+'" data-phone="'+esc(a.customer_phone||'')+'" data-name="'+esc(a.customer_name||'')+'" type="button">'+esc(a.customer_name||'Customer')+'</button><br><span class="muted">'+esc(a.customer_phone||'')+'</span></td><td>'+esc(a.service||'General service')+'<br><span class="muted">'+esc(a.appointment_date||'—')+(a.appointment_time?' · '+String(a.appointment_time).slice(0,5):'')+'</span></td><td>'+esc(a.source||'Website')+'</td><td><span class="badge">'+esc(a.status||'Requested')+'</span></td><td><div class="actionLinks"><button class="smallBtn callBtn" data-phone="'+esc(a.customer_phone||'')+'" type="button">Call</button><button class="smallBtn waBtn" data-phone="'+esc(a.customer_phone||'')+'" data-name="'+esc(a.customer_name||'')+'" type="button">WhatsApp</button></div></td></tr>').join('')+'</tbody></table></div>';$('leadTable').querySelectorAll('.callBtn').forEach(x=>x.onclick=()=>location.href='tel:'+x.dataset.phone);$('leadTable').querySelectorAll('.waBtn').forEach(x=>x.onclick=()=>window.open('https://wa.me/'+x.dataset.phone.replace(/\\D/g,'')+'?text='+encodeURIComponent('Hi '+x.dataset.name+', we received your booking request. How can we help you?'),'_blank'));$('leadTable').querySelectorAll('.customerBtn').forEach(x=>x.onclick=()=>openCustomer360(x.dataset.customer,x.dataset.phone,x.dataset.name))}
+async function updateLeadStatus(id,status){try{await api('/rest/v1/leads?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({status,updated_at:new Date().toISOString()})});const l=leads.find(x=>x.id===id);if(l)l.status=status;renderStats();renderLeads()}catch(e){alert(e.message)}}
+'''
+              s = s[:start] + functions + s[end:]
 
-          s = re.sub(r'function renderLeads\(\)\{.*?\}\nasync function updateLeadStatus', '''function renderLeads(){const q=($('leadSearch')?.value||'').toLowerCase().trim(),f=$('leadFilter')?.value||'All';const list=appointments.filter(a=>(f==='All'||a.status===f)&&(!q||[a.customer_name,a.customer_phone,a.service,a.source,a.notes].join(' ').toLowerCase().includes(q)));if(!$('leadTable'))return;if(!list.length){$('leadTable').innerHTML='<div class="empty">No booking requests match your filters.</div>';return}$('leadTable').innerHTML='<div class="tableWrap"><table class="table"><thead><tr><th>Customer</th><th>Booking</th><th>Source</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+list.map(a=>'<tr><td><button class="smallBtn customerBtn" data-customer="'+esc(a.customer_id||'')+'" data-phone="'+esc(a.customer_phone||'')+'" data-name="'+esc(a.customer_name||'')+'" type="button">'+esc(a.customer_name||'Customer')+'</button><br><span class="muted">'+esc(a.customer_phone||'')+'</span></td><td>'+esc(a.service||'General service')+'<br><span class="muted">'+esc(a.appointment_date||'—')+(a.appointment_time?' · '+String(a.appointment_time).slice(0,5):'')+'</span></td><td>'+esc(a.source||'Website')+'</td><td><span class="badge">'+esc(a.status||'Requested')+'</span></td><td><div class="actionLinks"><button class="smallBtn callBtn" data-phone="'+esc(a.customer_phone||'')+'" type="button">Call</button><button class="smallBtn waBtn" data-phone="'+esc(a.customer_phone||'')+'" data-name="'+esc(a.customer_name||'')+'" type="button">WhatsApp</button></div></td></tr>').join('')+'</tbody></table></div>';$('leadTable').querySelectorAll('.callBtn').forEach(x=>x.onclick=()=>location.href='tel:'+x.dataset.phone);$('leadTable').querySelectorAll('.waBtn').forEach(x=>x.onclick=()=>window.open('https://wa.me/'+x.dataset.phone.replace(/\\D/g,'')+'?text='+encodeURIComponent('Hi '+x.dataset.name+', this is the salon team. We received your booking request. How can we help you?'),'_blank'));$('leadTable').querySelectorAll('.customerBtn').forEach(x=>x.onclick=()=>openCustomer360(x.dataset.customer,x.dataset.phone,x.dataset.name))}
-async function updateLeadStatus''', s, count=1, flags=re.S)
-
-          # Booking filters instead of lead-status filters.
-          s = re.sub(r'<select id="leadFilter">.*?</select>', '<select id="leadFilter"><option value="All">All bookings</option><option>Requested</option><option>Confirmed</option><option>Completed</option><option>Cancelled</option><option>No Show</option></select>', s, count=1, flags=re.S)
-
-          # Make booking status updates operate on the appointment record when used by older code paths.
-          if 'function openCustomer360' not in s:
-              anchor = 'async function updateLeadStatus'
-              helper = '''function openCustomer360(customerId,phone,name){alert((name||'Customer')+'\\n'+(phone||'')+'\\n\\nCustomer 360 is connected to this booking. Full profile, visits, spend and loyalty will open here next.')}\n'''
-              s = s.replace(anchor, helper + anchor, 1)
-
-          # Make the embedded calendar owner-specific.
+          # Keep the owner calendar embedded and salon-scoped.
           if 'function syncCalendar()' not in s:
-              s = s.replace('async function loadCatalog(){', "function syncCalendar(){const f=document.getElementById('calendarFrame');if(f&&salon)f.src='appointments.html?salon='+encodeURIComponent(salon.id)}\\nasync function loadCatalog(){", 1)
+              s = s.replace('async function loadCatalog(){', "function syncCalendar(){const f=document.getElementById('calendarFrame');if(f&&salon)f.src='appointments.html?salon='+encodeURIComponent(salon.id)}\nasync function loadCatalog(){", 1)
           s = s.replace('async function loadCatalog(){if(!salon)return;', 'async function loadCatalog(){if(!salon)return;syncCalendar();', 1)
 
-          # Resize flow for mobile.
-          if '#bookingFlow' not in s:
-              s = s.replace('@media(max-width:850px){', '@media(max-width:850px){#bookingFlow>div{grid-template-columns:1fr!important}.', 1)
+          # Responsive flow layout.
+          if '#bookingFlow .grid' not in s:
+              s = s.replace('</style>', '@media(max-width:850px){#bookingFlow .grid{grid-template-columns:1fr!important}}\n</style>', 1)
 
           p.write_text(s)
           PY
-      - name: Commit refinement
+      - name: Commit owner workspace
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
