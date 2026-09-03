@@ -1,0 +1,53 @@
+name: Customer Website Link
+
+on:
+  push:
+    paths:
+      - '.github/workflows/customer-website-link.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-customer-website:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update Customer Website navigation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          old = '<button data-tab="demo" type="button">Customer Website</button>'
+          new = '<button type="button" onclick="openCustomerWebsite()">Customer Website ↗</button>'
+          if old in s:
+              s = s.replace(old, new, 1)
+
+          old_quick = '<button type="button" onclick="switchTab(\'demo\')">Open Customer Website</button>'
+          new_quick = '<button type="button" onclick="openCustomerWebsite()">Open Customer Website ↗</button>'
+          if old_quick in s:
+              s = s.replace(old_quick, new_quick, 1)
+
+          marker = "function switchTab(tab){"
+          fn = "function openCustomerWebsite(){if(!salon?.id){alert('Salon is not configured yet.');return}window.open('salon.html?salon='+encodeURIComponent(salon.id),'_blank','noopener');}\n"
+          if 'function openCustomerWebsite()' not in s and marker in s:
+              s = s.replace(marker, fn + marker, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if git diff --cached --quiet; then
+            echo 'No changes needed.'
+            exit 0
+          fi
+          git commit -m 'Make Customer Website open live salon page'
+          git push
