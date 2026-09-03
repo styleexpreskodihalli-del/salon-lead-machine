@@ -15,62 +15,84 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix dashboard booking snapshot
+      - name: Upgrade owner dashboard snapshot
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
+          p=Path('index.html')
+          s=p.read_text()
 
-          p = Path('index.html')
-          s = p.read_text()
+          # Replace the snapshot card area.
+          old='<div class="statGrid"><div class="stat"><b id="statLeads">0</b><span>Today\'s bookings</span></div><div class="stat"><b id="statFollow">0</b><span>Needs confirmation</span></div><div class="stat"><b id="statConverted">0</b><span>Completed</span></div><div class="stat"><b id="statRate">0</b><span>Confirmed</span></div></div>'
+          new='''<div class="snapshotStats">
+            <div class="snapshotStat"><b id="statLeads">0</b><span>Booking Requests</span></div>
+            <div class="snapshotStat"><b id="statFollow">0</b><span>Confirmed</span></div>
+            <div class="snapshotStat"><b id="statVisited">0</b><span>Visited</span></div>
+            <div class="snapshotStat"><b id="statConverted">0</b><span>Paid</span></div>
+            <div class="snapshotStat snapshotRevenue"><b id="statRevenue">₹0</b><span>Today\'s Revenue</span></div>
+          </div>
+          <div class="performerGrid">
+            <div class="performerCard"><div class="performerLabel"><span class="performerCrown">🏆</span> Top Performer Today</div><div class="performerName" id="topPerformerDay">No paid visits yet</div><div class="performerMeta" id="topPerformerDayMeta">Complete a paid visit to start the leaderboard.</div></div>
+            <div class="performerCard"><div class="performerLabel"><span class="performerCrown">👑</span> Top Performer This Month</div><div class="performerName" id="topPerformerMonth">No paid visits yet</div><div class="performerMeta" id="topPerformerMonthMeta">Monthly performance will appear here.</div></div>
+          </div>'''
+          if old in s:s=s.replace(old,new,1)
 
-          # Remove every previous injected snapshot loader. The old versions were
-          # duplicated and used browser locale formatting that could mismatch YYYY-MM-DD.
-          s = re.sub(r'<script>\(function\(\)\{\s*async function loadBookingSnapshot\(\).*?</script>', '', s, flags=re.S)
+          # Add visual styles.
+          anchor='''\n.bookingSnapshot{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}.bookingSnapshotTitle{font-size:12px;font-weight:900;text-transform:uppercase;color:var(--muted);margin-bottom:8px}.bookingSnapshotRows{display:grid;gap:7px}.bookingSnapshotRow{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:#fff}.bookingSnapshotName{font-weight:800;font-size:13px}.bookingSnapshotMeta{font-size:11px;color:var(--muted);margin-top:2px}.bookingSnapshotStatus{font-size:10px;font-weight:900;padding:4px 6px;border-radius:999px;background:var(--brand2);color:var(--brand);height:max-content}.bookingSnapshotEmpty{font-size:12px;color:var(--muted);padding:8px 0}'''
+          styles='''\n.bookingSnapshot{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}.snapshotStats{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}.snapshotStat{background:#f8faf8;border:1px solid var(--line);border-radius:14px;padding:12px}.snapshotStat b{display:block;font-size:23px;color:var(--brand)}.snapshotStat span{display:block;color:var(--muted);font-size:11px;margin-top:3px}.snapshotRevenue b{font-size:19px}.performerGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.performerCard{border:1px solid var(--line);border-radius:14px;padding:13px;background:linear-gradient(135deg,#f8faf8,#fff)}.performerLabel{font-size:10px;text-transform:uppercase;font-weight:900;color:var(--muted);letter-spacing:.04em}.performerName{font-size:18px;font-weight:900;color:var(--brand);margin-top:4px}.performerMeta{font-size:11px;color:var(--muted);margin-top:4px}.performerCrown{font-size:18px}.bookingSnapshotTitle{font-size:12px;font-weight:900;text-transform:uppercase;color:var(--muted);margin:14px 0 8px}.bookingSnapshotRows{display:grid;gap:7px}.bookingSnapshotRow{display:grid;grid-template-columns:1fr auto;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#fff}.bookingSnapshotName{font-weight:800;font-size:13px}.bookingSnapshotMeta{font-size:11px;color:var(--muted);margin-top:2px}.bookingSnapshotStatus{font-size:10px;font-weight:900;padding:4px 6px;border-radius:999px;background:var(--brand2);color:var(--brand);height:max-content}.bookingSnapshotEmpty{font-size:12px;color:var(--muted);padding:8px 0}@media(max-width:850px){.snapshotStats{grid-template-columns:repeat(2,1fr)}.performerGrid{grid-template-columns:1fr}}'''
+          if anchor in s:s=s.replace(anchor,styles,1)
 
-          # Add one reliable snapshot renderer that reuses the already authenticated
-          # appointments array loaded by the main owner dashboard.
-          marker = "async function loadAppointments(){if(!salon)return;appointments=await api('/rest/v1/appointments?salon_id=eq.'+salon.id+'&select=*&order=appointment_date.asc,appointment_time.asc,created_at.desc').catch(()=>[])}"
-          fn = r'''function renderBookingSnapshot(){
-            const box=$('bookingSnapshotList');
-            if(!box||!salon||publicMode)return;
+          # Remove old injected snapshot functions/scripts and install one authoritative renderer.
+          s=re.sub(r'<script>\(function\(\)\{\s*async function loadBookingSnapshot\(\).*?</script>','',s,flags=re.S)
+          marker="function renderBookingSnapshot(){"
+          start=s.find(marker)
+          if start>=0:
+              end=s.find('function renderLeads()',start)
+              if end>start:s=s[:start]+s[end:]
+
+          fn=r'''function renderBookingSnapshot(){
+            const box=$('bookingSnapshotList');if(!box||!salon||publicMode)return;
             const pad=n=>String(n).padStart(2,'0');
             const now=new Date();
             const today=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+            const month=now.getFullYear()+'-'+pad(now.getMonth()+1);
             const rows=appointments||[];
-            const todayRows=rows.filter(x=>x.appointment_date===today);
-            const requested=rows.filter(x=>x.status==='Requested').length;
-            const confirmed=rows.filter(x=>x.status==='Confirmed').length;
-            const completed=rows.filter(x=>x.status==='Completed').length;
+            const todayRows=rows.filter(x=>x.appointment_date===today&&!['Cancelled','No Show'].includes(x.status));
+            const confirmed=todayRows.filter(x=>x.status==='Confirmed').length;
             const set=(id,val)=>{const el=$(id);if(el)el.textContent=String(val)};
-            set('statLeads',todayRows.length);
-            set('statFollow',requested);
-            set('statRate',confirmed);
-            set('statConverted',completed);
-            const rank=(a,b)=>{
-              const da=(a.appointment_date||'9999-99-99')+' '+(a.appointment_time||'99:99:99');
-              const db=(b.appointment_date||'9999-99-99')+' '+(b.appointment_time||'99:99:99');
-              return da.localeCompare(db);
-            };
-            const upcoming=rows.filter(x=>x.appointment_date>=today&&x.status!=='Cancelled'&&x.status!=='Completed').sort(rank);
-            const recent=rows.filter(x=>x.appointment_date<today||x.status==='Completed').sort((a,b)=>rank(b,a));
+            const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0});
+            set('statLeads',todayRows.filter(x=>x.status==='Requested'||x.status==='Confirmed').length);
+            set('statFollow',confirmed);
+            const visits=window.__slmVisits||[];
+            const paidToday=visits.filter(v=>String(v.visited_at||'').slice(0,10)===today);
+            const revenue=paidToday.reduce((sum,v)=>sum+Math.max(0,Number(v.amount||0)-Number(v.discount||0)),0);
+            set('statVisited',paidToday.length);set('statConverted',paidToday.length);set('statRevenue',money(revenue));
+            const rank=items=>{const m={};items.forEach(v=>{const n=(v.staff_name||'Unassigned').trim()||'Unassigned';if(!m[n])m[n]={name:n,revenue:0,visits:0};m[n].revenue+=Math.max(0,Number(v.amount||0)-Number(v.discount||0));m[n].visits++});return Object.values(m).sort((a,b)=>b.revenue-a.revenue||b.visits-a.visits)};
+            const day=rank(paidToday),mon=rank(visits.filter(v=>String(v.visited_at||'').slice(0,7)===month));
+            const performer=(id,meta,x,empty)=>{set(id,x?x.name:empty);set(meta,x?money(x.revenue)+' revenue · '+x.visits+' paid visit'+(x.visits===1?'':'s'):empty)};
+            performer('topPerformerDay','topPerformerDayMeta',day[0],'No paid visits yet');performer('topPerformerMonth','topPerformerMonthMeta',mon[0],'No paid visits yet');
+            const rankDate=(a,b)=>((a.appointment_date||'9999-99-99')+' '+(a.appointment_time||'99:99:99')).localeCompare((b.appointment_date||'9999-99-99')+' '+(b.appointment_time||'99:99:99'));
+            const upcoming=rows.filter(x=>x.appointment_date>=today&&!['Cancelled','Completed','No Show'].includes(x.status)).sort(rankDate);
+            const recent=rows.filter(x=>x.appointment_date<today||x.status==='Completed').sort((a,b)=>rankDate(b,a));
             const display=upcoming.concat(recent).slice(0,4);
             const safe=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-            box.querySelector('.bookingSnapshotRows').innerHTML=display.length?display.map(x=>{
-              const tm=x.appointment_time?String(x.appointment_time).slice(0,5):'';
-              return '<div class="bookingSnapshotRow"><div><div class="bookingSnapshotName">'+safe(x.customer_name||'Customer')+'</div><div class="bookingSnapshotMeta">'+safe(x.service||'Service')+' · '+safe(x.appointment_date||'—')+(tm?' · '+safe(tm):'')+(x.source?' · '+safe(x.source):'')+'</div></div><span class="bookingSnapshotStatus">'+safe(x.status||'Requested')+'</span></div>';
-            }).join(''):'<div class="bookingSnapshotEmpty">No bookings yet.</div>';
-          }'''
-          if marker not in s:
-              raise SystemExit('loadAppointments marker not found')
-          s=s.replace(marker,marker+'\n'+fn,1)
-
-          old="async function loadLeads(){if(!salon)return;leads=await api('/rest/v1/leads?salon_id=eq.'+salon.id+'&select=*&order=created_at.desc').catch(()=>[]);await loadAppointments();renderStats();renderLeads()}"
-          new="async function loadLeads(){if(!salon)return;leads=await api('/rest/v1/leads?salon_id=eq.'+salon.id+'&select=*&order=created_at.desc').catch(()=>[]);await loadAppointments();renderStats();renderBookingSnapshot();renderLeads()}"
-          if old not in s:
-              raise SystemExit('loadLeads marker not found')
-          s=s.replace(old,new,1)
+            box.querySelector('.bookingSnapshotRows').innerHTML=display.length?display.map(x=>{const tm=x.appointment_time?String(x.appointment_time).slice(0,5):'';return '<div class="bookingSnapshotRow"><div><div class="bookingSnapshotName">'+safe(x.customer_name||'Customer')+'</div><div class="bookingSnapshotMeta">'+safe(x.service||'Service')+' · '+safe(x.appointment_date||'—')+(tm?' · '+safe(tm):'')+(x.source?' · '+safe(x.source):'')+'</div></div><span class="bookingSnapshotStatus">'+safe(x.status||'Requested')+'</span></div>'}).join(''):'<div class="bookingSnapshotEmpty">No bookings yet.</div>';
+          }
+          async function loadSnapshotVisits(){
+            if(!salon||!session?.access_token)return;
+            try{window.__slmVisits=await api('/rest/v1/customer_visits?salon_id=eq.'+encodeURIComponent(salon.id)+'&select=id,amount,discount,staff_name,visited_at&order=visited_at.desc&limit=1000').catch(()=>[])}catch(e){window.__slmVisits=[]}
+            renderBookingSnapshot();
+          }
+          '''
+          # Insert snapshot function immediately before renderLeads and call it after appointment loading.
+          pos=s.find('function renderLeads()')
+          if pos<0:raise SystemExit('renderLeads not found')
+          s=s[:pos]+fn+s[pos:]
+          oldload="async function loadLeads(){if(!salon)return;leads=await api('/rest/v1/leads?salon_id=eq.'+salon.id+'&select=*&order=created_at.desc').catch(()=>[]);await loadAppointments();renderStats();renderBookingSnapshot();renderLeads()}"
+          newload="async function loadLeads(){if(!salon)return;leads=await api('/rest/v1/leads?salon_id=eq.'+salon.id+'&select=*&order=created_at.desc').catch(()=>[]);await loadAppointments();await loadSnapshotVisits();renderStats();renderBookingSnapshot();renderLeads()}"
+          if oldload in s:s=s.replace(oldload,newload,1)
           p.write_text(s)
           PY
 
@@ -81,13 +103,11 @@ jobs:
           from pathlib import Path
           p=Path('bookings.html')
           s=p.read_text()
-          if "mark_appointment_visited_paid" not in s:
-              start=s.find('async function changeStatus(')
-              end=s.find('async function createBooking(',start)
+          if 'mark_appointment_visited_paid' not in s:
+              start=s.find('async function changeStatus(');end=s.find('async function createBooking(',start)
               if start<0 or end<0: raise SystemExit('Could not locate booking status function')
-              fixed='''async function changeStatus(id,status){\n                const a=appointments.find(x=>x.id===id);if(!a)return;\n                if(status==='Completed'){\n                  if(!a.customer_id){notify('This booking has no linked customer record.',true);return}\n                  const amount=Number(prompt('Bill amount paid (₹):','0')||0);\n                  if(!Number.isFinite(amount)||amount<0){notify('Please enter a valid bill amount.',true);return}\n                  const discount=Number(prompt('Discount (₹):','0')||0);\n                  if(!Number.isFinite(discount)||discount<0){notify('Please enter a valid discount amount.',true);return}\n                  const staff=prompt('Stylist / staff name (optional):','')||'';\n                  const notes=prompt('Visit note (optional):','')||'';\n                  const rpc=await api('/rest/v1/rpc/mark_appointment_visited_paid',{method:'POST',body:JSON.stringify({p_appointment_id:a.id,p_amount:amount,p_discount:discount,p_staff_name:staff,p_notes:notes})});\n                  if(!rpc?.success){notify('Could not complete this visit.',true);return}\n                  await loadData();\n                  notify(rpc.already_recorded?'This visit was already recorded. Booking is marked Completed / Paid.':'Visit completed. Bill, customer totals and loyalty updated.');\n                  return;\n                }\n                await api('/rest/v1/appointments?id='+encodeURIComponent(id)+'&salon_id='+encodeURIComponent(salon.id),{method:'PATCH',body:JSON.stringify({status,updated_at:new Date().toISOString()})});\n                await loadData();notify('Booking updated to '+status+'.');\n              }\n              '''
-              s=s[:start]+fixed+s[end:]
-              p.write_text(s)
+              fixed='''async function changeStatus(id,status){\n                const a=appointments.find(x=>x.id===id);if(!a)return;\n                if(status==='Completed'){\n                  if(!a.customer_id){notify('This booking has no linked customer record.',true);return}\n                  const amount=Number(prompt('Bill amount paid (₹):','0')||0);\n                  if(!Number.isFinite(amount)||amount<0){notify('Please enter a valid bill amount.',true);return}\n                  const discount=Number(prompt('Discount (₹):','0')||0);\n                  if(!Number.isFinite(discount)||discount<0){notify('Please enter a valid discount amount.',true);return}\n                  const staff=prompt('Stylist / staff name (optional):','')||'';\n                  const notes=prompt('Visit note (optional):','')||'';\n                  const rpc=await api('/rest/v1/rpc/mark_appointment_visited_paid',{method:'POST',body:JSON.stringify({p_appointment_id:a.id,p_amount:amount,p_discount:discount,p_staff_name:staff,p_notes:notes})});\n                  if(!rpc?.success){notify('Could not complete this visit.',true);return}\n                  await loadData();notify(rpc.already_recorded?'This visit was already recorded. Booking is marked Completed / Paid.':'Visit completed. Bill, customer totals and loyalty updated.');return;\n                }\n                await api('/rest/v1/appointments?id='+encodeURIComponent(id)+'&salon_id='+encodeURIComponent(salon.id),{method:'PATCH',body:JSON.stringify({status,updated_at:new Date().toISOString()})});\n                await loadData();notify('Booking updated to '+status+'.');\n              }\n              '''
+              s=s[:start]+fixed+s[end:];p.write_text(s)
           PY
 
       - name: Commit repair
@@ -96,5 +116,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html bookings.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Fix dashboard booking snapshot'
+          git commit -m 'Upgrade dashboard with revenue and top performer'
           git push
