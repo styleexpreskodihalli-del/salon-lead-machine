@@ -56,7 +56,21 @@ function syncCalendar(){const f=document.getElementById('calendarFrame');if(f&&s
 async function loadCatalog(){if(!salon)return;syncCalendar();services=await api('/rest/v1/salon_services?salon_id=eq.'+salon.id+'&active=eq.true&select=*&order=sort_order,id').catch(()=>[]);offers=await api('/rest/v1/salon_offers?salon_id=eq.'+salon.id+'&active=eq.true&select=*&order=sort_order,id').catch(()=>[]);if(!services.length)services=FALLBACK_SERVICES;if(!offers.length)offers=FALLBACK_OFFERS;renderCatalog()}
 async function loadLeads(){if(!salon)return;leads=await api('/rest/v1/leads?salon_id=eq.'+salon.id+'&select=*&order=created_at.desc').catch(()=>[]);await loadAppointments();await loadSnapshotVisits();renderStats();renderBookingSnapshot();renderLeads()}
 async function loadAppointments(){if(!salon)return;appointments=await api('/rest/v1/appointments?salon_id=eq.'+salon.id+'&select=*&order=appointment_date.asc,appointment_time.asc,created_at.desc').catch(()=>[])}
-function renderBookingSnapshot(){
+function renderCatalog(){
+      const serviceBox=document.getElementById('services');
+      const offerBox=document.getElementById('offers');
+      let svc=[];let off=[];
+      try{svc=(typeof services!=='undefined'&&Array.isArray(services))?services:[]}catch(e){}
+      try{off=(typeof offers!=='undefined'&&Array.isArray(offers))?offers:[]}catch(e){}
+      const safe=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+      if(serviceBox){
+        serviceBox.innerHTML=svc.length?svc.map(x=>'<div class="card"><span class="badge">Service</span><h3>'+safe(x.name||x.title||'Service')+'</h3><div class="servicePrice">'+(x.price!=null?'₹'+safe(Number(x.price).toLocaleString('en-IN')):'')+'</div>'+(x.description?'<p class="muted">'+safe(x.description)+'</p>':'')+'</div>').join(''):'<div class="empty">No services added yet.</div>';
+      }
+      if(offerBox){
+        offerBox.innerHTML=off.length?off.map(x=>'<div class="card offer"><span class="badge">Offer</span><h3>'+safe(x.title||x.name||'Special Offer')+'</h3>'+(x.description?'<p class="muted">'+safe(x.description)+'</p>':'')+(x.price!=null?'<div class="servicePrice">₹'+safe(Number(x.price).toLocaleString('en-IN'))+'</div>':'')+'</div>').join(''):'<div class="empty">No offers added yet.</div>';
+      }
+    }
+    function renderBookingSnapshot(){
   const box=$('bookingSnapshotList');if(!box||!salon||publicMode)return;
   const pad=n=>String(n).padStart(2,'0');
   const now=new Date();
