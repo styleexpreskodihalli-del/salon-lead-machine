@@ -23,9 +23,7 @@ jobs:
           p=Path('index.html')
           s=p.read_text()
 
-          # The dashboard currently calls renderCatalog during startup, but an earlier
-          # snapshot repair removed the original helper. Restore a safe renderer that
-          # works with the existing service/offer data and never blocks the dashboard.
+          # Restore the catalog renderer if an earlier repair removed it.
           if 'function renderCatalog(){' not in s:
               fn=r'''function renderCatalog(){
                 const serviceBox=document.getElementById('services');
@@ -47,7 +45,23 @@ jobs:
               if pos<0: raise SystemExit('Could not find dashboard render insertion point')
               s=s[:pos]+fn+s[pos:]
 
-          # Ensure a booking snapshot exists even if the previous repair was partially applied.
+          # Restore the dashboard KPI renderer. The current boot sequence calls this
+          # after appointments and visit data have been loaded.
+          if 'function renderStats(){' not in s:
+              fn=r'''function renderStats(){
+                const rows=Array.isArray(appointments)?appointments:[];
+                const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=String(val)};
+                set('dashTotal',rows.length);
+                set('dashNew',rows.filter(x=>x.status==='Requested').length);
+                set('dashContacted',rows.filter(x=>x.status==='Confirmed').length);
+                set('dashConverted',rows.filter(x=>x.status==='Completed').length);
+              }
+              '''
+              pos=s.find('function renderBookingSnapshot()')
+              if pos<0: pos=s.find('function renderLeads()')
+              if pos<0: raise SystemExit('Could not find dashboard stats insertion point')
+              s=s[:pos]+fn+s[pos:]
+
           if 'function renderBookingSnapshot(){' not in s:
               raise SystemExit('renderBookingSnapshot missing')
 
@@ -74,5 +88,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html bookings.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Fix missing catalog renderer'
+          git commit -m 'Fix missing dashboard renderStats'
           git push
