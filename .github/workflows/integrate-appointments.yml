@@ -1,4 +1,4 @@
-name: Fix booking-first workspace
+name: Connect customer 360
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Update owner workspace
+      - name: Connect Customer 360
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -53,18 +53,16 @@ jobs:
           end = s.find('async function addService', start)
           if start >= 0 and end > start:
               functions = '''function renderStats(){const total=appointments.length,req=appointments.filter(x=>x.status==='Requested').length,conf=appointments.filter(x=>x.status==='Confirmed').length,done=appointments.filter(x=>x.status==='Completed').length;$('statLeads').textContent=req;$('statFollow').textContent=conf;$('statConverted').textContent=done;$('statRate').textContent=(total?Math.round(done*100/total):0)+'%';$('dashTotal').textContent=total;$('dashNew').textContent=req;$('dashContacted').textContent=conf;$('dashConverted').textContent=done}
-function openCustomer360(customerId,phone,name){alert((name||'Customer')+'\\n'+(phone||'')+'\\n\\nThis booking is linked to the customer record. Customer 360 with visits, spend and loyalty is the next layer.')}
+function openCustomer360(customerId,phone,name){if(!salon||(!customerId&&!phone)){alert('Customer record is not available yet.');return}const qs=new URLSearchParams({salon:salon.id,customer:customerId||'',phone:phone||'',name:name||''});location.href='customer360.html?'+qs.toString()}
 function renderLeads(){const q=($('leadSearch')?.value||'').toLowerCase().trim(),f=$('leadFilter')?.value||'All';const list=appointments.filter(a=>(f==='All'||a.status===f)&&(!q||[a.customer_name,a.customer_phone,a.service,a.source,a.notes].join(' ').toLowerCase().includes(q)));if(!$('leadTable'))return;if(!list.length){$('leadTable').innerHTML='<div class="empty">No booking requests match your filters.</div>';return}$('leadTable').innerHTML='<div class="tableWrap"><table class="table"><thead><tr><th>Customer</th><th>Booking</th><th>Source</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+list.map(a=>'<tr><td><button class="smallBtn customerBtn" data-customer="'+esc(a.customer_id||'')+'" data-phone="'+esc(a.customer_phone||'')+'" data-name="'+esc(a.customer_name||'')+'" type="button">'+esc(a.customer_name||'Customer')+'</button><br><span class="muted">'+esc(a.customer_phone||'')+'</span></td><td>'+esc(a.service||'General service')+'<br><span class="muted">'+esc(a.appointment_date||'—')+(a.appointment_time?' · '+String(a.appointment_time).slice(0,5):'')+'</span></td><td>'+esc(a.source||'Website')+'</td><td><span class="badge">'+esc(a.status||'Requested')+'</span></td><td><div class="actionLinks"><button class="smallBtn callBtn" data-phone="'+esc(a.customer_phone||'')+'" type="button">Call</button><button class="smallBtn waBtn" data-phone="'+esc(a.customer_phone||'')+'" data-name="'+esc(a.customer_name||'')+'" type="button">WhatsApp</button></div></td></tr>').join('')+'</tbody></table></div>';$('leadTable').querySelectorAll('.callBtn').forEach(x=>x.onclick=()=>location.href='tel:'+x.dataset.phone);$('leadTable').querySelectorAll('.waBtn').forEach(x=>x.onclick=()=>window.open('https://wa.me/'+x.dataset.phone.replace(/\\D/g,'')+'?text='+encodeURIComponent('Hi '+x.dataset.name+', we received your booking request. How can we help you?'),'_blank'));$('leadTable').querySelectorAll('.customerBtn').forEach(x=>x.onclick=()=>openCustomer360(x.dataset.customer,x.dataset.phone,x.dataset.name))}
 async function updateLeadStatus(id,status){try{await api('/rest/v1/leads?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({status,updated_at:new Date().toISOString()})});const l=leads.find(x=>x.id===id);if(l)l.status=status;renderStats();renderLeads()}catch(e){alert(e.message)}}
 '''
               s = s[:start] + functions + s[end:]
 
-          # Keep the owner calendar embedded and salon-scoped.
           if 'function syncCalendar()' not in s:
               s = s.replace('async function loadCatalog(){', "function syncCalendar(){const f=document.getElementById('calendarFrame');if(f&&salon)f.src='appointments.html?salon='+encodeURIComponent(salon.id)}\nasync function loadCatalog(){", 1)
           s = s.replace('async function loadCatalog(){if(!salon)return;', 'async function loadCatalog(){if(!salon)return;syncCalendar();', 1)
 
-          # Responsive flow layout.
           if '#bookingFlow .grid' not in s:
               s = s.replace('</style>', '@media(max-width:850px){#bookingFlow .grid{grid-template-columns:1fr!important}}\n</style>', 1)
 
@@ -76,5 +74,5 @@ async function updateLeadStatus(id,status){try{await api('/rest/v1/leads?id=eq.'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Make booking requests the primary customer workflow'
+          git commit -m 'Connect customer rows to Customer 360'
           git push
