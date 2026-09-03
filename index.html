@@ -13,7 +13,7 @@
 </head>
 <body>
 <div id="publicBar" class="publicBar hidden">Customer view · <span id="publicSalonName"></span></div>
-<header class="topbar"><div class="logo">Salon <span>Lead Machine</span></div><div class="userbar" id="userbar"></div><nav class="nav" id="nav"><button class="active" data-tab="dashboard" type="button">Dashboard</button><button type="button" onclick="location.href='bookings.html'">Bookings &amp; Customers</button><button data-tab="catalog" type="button">Services & Offers</button><button type="button" onclick="openCustomerWebsite()">Customer Website ↗</button><button data-tab="setup" type="button">Auto Setup</button><button data-tab="settings" type="button">Salon Setup</button></nav></header>
+<header class="topbar"><div class="logo">Salon <span>Lead Machine</span></div><div class="userbar" id="userbar"></div><nav class="nav" id="nav"><button class="active" data-tab="dashboard" type="button">Dashboard</button><button type="button" onclick="location.href='bookings.html'">Bookings &amp; Customers</button><button data-tab="catalog" type="button">Services & Offers</button><button id="customerWebsiteBtn" type="button">Customer Website ↗</button><button data-tab="setup" type="button">Auto Setup</button><button data-tab="settings" type="button">Salon Setup</button></nav></header>
 <main class="shell">
 <section id="login" class="panel active"><div class="card auth"><span class="badge">Salon Owner Access</span><h1>Turn salon enquiries into appointments.</h1><p class="muted">Sign in with Google to create your salon workspace, connect your Google Business listing, discover website information and track every lead.</p><button id="loginBtn" class="primary" type="button">Continue with Google</button><p id="authMessage" class="muted"></p></div></section>
 
@@ -61,7 +61,7 @@
         <button class="primary" type="button" onclick="location.href='bookings.html'">+ Create Booking</button>
         <button type="button" onclick="location.href='bookings.html'">View Customers</button>
         <button type="button" onclick="switchTab('catalog')">Manage Services & Offers</button>
-        <button type="button" onclick="openCustomerWebsite()">Open Customer Website ↗</button>
+        <button id="openCustomerWebsiteBtn" type="button">Open Customer Website ↗</button>
         <button type="button" onclick="switchTab('settings')">Salon Setup</button>
       </div>
     </div>
