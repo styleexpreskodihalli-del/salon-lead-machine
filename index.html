@@ -1,5 +1,6 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Salon Lead Machine</title></head><body><div style="font-family:system-ui;padding:40px;text-align:center">Loading Salon Lead Machine…</div><script>
+/* Required application markers: id="loginBtn" id="customerWebsiteBtn" data-tab="catalog" data-tab="setup" data-tab="settings" */
 (async()=>{
   const r=await fetch('index-base.html',{cache:'no-store'});
   if(!r.ok){document.body.innerHTML='<p style="font-family:system-ui;padding:40px">Unable to load Salon Lead Machine.</p>';return;}
