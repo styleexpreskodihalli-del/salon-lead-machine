@@ -45,3 +45,4 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m 'Fix STall logo rendering'
           git push
+# Keep the production branding workflow authoritative for the score page.
