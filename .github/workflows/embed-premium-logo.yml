@@ -1,10 +1,9 @@
-name: Embed Exact Approved STall Logo
+name: Embed Approved STall Logo
 on:
   push:
     branches: [main]
     paths:
-      - 'stall-exact-approved.svg'
-      - 'stall-exact-approved-footer.svg'
+      - 'stall-approved-logo.webp'
       - 'stall-premium-top.svg'
       - 'stall-premium-footer.svg'
       - '.github/workflows/embed-premium-logo.yml'
@@ -15,24 +14,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply exact approved logo only
+      - name: Apply approved logo only
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('whatsapp-score.html')
           s=p.read_text()
-          s=s.replace('src="stall-premium-top.svg"','src="stall-exact-approved.svg"')
-          s=s.replace('src="stall-premium-footer.svg"','src="stall-exact-approved-footer.svg"')
-          s=s.replace('src="stall-approved-logo.svg"','src="stall-exact-approved.svg"')
-          s=s.replace('src="stall-logo.svg"','src="stall-exact-approved.svg"')
-          s=s.replace('src="stall-footer-logo.svg"','src="stall-exact-approved-footer.svg"')
+          s=s.replace('src="stall-premium-top.svg"','src="stall-approved-logo.webp"')
+          s=s.replace('src="stall-premium-footer.svg"','src="stall-approved-logo.webp"')
+          s=s.replace('src="stall-logo.svg"','src="stall-approved-logo.webp"')
+          s=s.replace('.logo{width:118px;height:72px;','.logo{width:150px;height:82px;')
+          s=s.replace('.logo{width:104px;height:64px;','.logo{width:125px;height:72px;')
+          s=s.replace('.footer-mark{width:106px;height:89px;','.footer-mark{width:150px;height:101px;')
+          s=s.replace('.footer-mark img{width:106px;height:89px;','.footer-mark img{width:150px;height:101px;')
           p.write_text(s)
           PY
-      - name: Commit exact logo references
+      - name: Commit approved logo references
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add whatsapp-score.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Use exact approved STall logo in header and footer'
+          git commit -m 'Use approved STall logo in header and footer'
           git push
