@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'rebrand_score.py'
+      - 'polish_footer.py'
       - '.github/workflows/rebrand-score.yml'
 permissions:
   contents: write
@@ -14,11 +15,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apply STall landing-page design
         run: python3 rebrand_score.py
+      - name: Polish footer branding
+        run: python3 polish_footer.py
       - name: Commit branded page
         run: |
           git config user.name 'STall Automation'
           git config user.email 'actions@github.com'
           git add whatsapp-score.html
           git diff --cached --quiet && exit 0
-          git commit -m 'Rebrand Salon Digital Score landing page'
+          git commit -m 'Refine STall footer branding'
           git push
