@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply approved logo only
+      - name: Apply approved logo and footer copyright
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -28,13 +28,17 @@ jobs:
           s=s.replace('.logo{width:104px;height:64px;','.logo{width:125px;height:72px;')
           s=s.replace('.footer-mark{width:106px;height:89px;','.footer-mark{width:150px;height:101px;')
           s=s.replace('.footer-mark img{width:106px;height:89px;','.footer-mark img{width:150px;height:101px;')
+          copyright='<div class="footer-copyright">© 2026 STall. All rights reserved.</div>'
+          if 'footer-copyright' not in s:
+              s=s.replace('<div class="footer-nav">DISCOVER <span>•</span> CONNECT <span>•</span> GROW</div>','<div class="footer-nav">DISCOVER <span>•</span> CONNECT <span>•</span> GROW</div>'+copyright)
+              s=s.replace('.footer-nav span{padding:0 7px;color:#555861}','.footer-nav span{padding:0 7px;color:#555861}\n.footer-copyright{margin-top:9px;font-size:9px;letter-spacing:.08em;color:#6f727c}')
           p.write_text(s)
           PY
-      - name: Commit approved logo references
+      - name: Commit approved logo and footer update
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add whatsapp-score.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Fix STall logo on salon score page'
+          git commit -m 'Add STall copyright to score footer'
           git push
