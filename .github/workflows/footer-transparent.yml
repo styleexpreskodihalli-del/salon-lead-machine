@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'stall-logo.svg'
       - 'stall-footer-logo.svg'
       - 'whatsapp-score.html'
       - '.github/workflows/footer-transparent.yml'
@@ -13,24 +14,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Switch footer logo only
+      - name: Build proper transparent footer logo
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          src=Path('stall-logo.svg').read_text()
+          m=re.search(r'base64,([^"\']+)', src)
+          if not m:
+              raise SystemExit('Embedded STall logo data not found')
+          webp=m.group(1)
+          svg=f'''<svg xmlns="http://www.w3.org/2000/svg" width="106" height="89" viewBox="0 0 106 89">
+          <defs>
+            <filter id="transparentWhite" color-interpolation-filters="sRGB">
+              <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  -1 -1 -1 0 3"/>
+            </filter>
+          </defs>
+          <image width="106" height="89" href="data:image/webp;base64,{webp}" filter="url(#transparentWhite)"/>
+          </svg>'''
+          Path('stall-footer-logo.svg').write_text(svg)
+          PY
+      - name: Keep footer logo only
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('whatsapp-score.html')
           s=p.read_text()
-          old='<div class="footer-mark"><img alt="STall logo" src="stall-logo.svg"></div>'
-          new='<div class="footer-mark"><img alt="STall logo" src="stall-footer-logo.svg"></div>'
-          if old in s:
-              p.write_text(s.replace(old,new,1))
+          s=s.replace('<div class="footer-mark"><img alt="STall logo" src="stall-logo.svg"></div>', '<div class="footer-mark"><img alt="STall logo" src="stall-footer-logo.svg"></div>', 1)
+          s=s.replace('.footer-mark{width:118px;height:72px;', '.footer-mark{width:106px;height:89px;', 1)
+          s=s.replace('.footer-mark img{width:118px;height:72px;', '.footer-mark img{width:106px;height:89px;', 1)
+          p.write_text(s)
           PY
       - name: Commit footer-only change
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add whatsapp-score.html
+          git add stall-footer-logo.svg whatsapp-score.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Fix footer logo background only'
+          git commit -m 'Fix footer logo transparency and sizing'
           git push
-
-# Isolated footer-only patch; top logo and all app logic remain untouched.
