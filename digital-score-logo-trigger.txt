@@ -1,0 +1,1 @@
+Standardize the approved STall logo across the Digital Score customer pages. Cosmetic branding only; preserve all existing application logic.
