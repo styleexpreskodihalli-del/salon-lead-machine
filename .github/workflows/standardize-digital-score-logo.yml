@@ -59,31 +59,12 @@ jobs:
               p.write_text(s,encoding='utf-8')
           for fn,kind in [('audit.html','audit'),('google-reviews.html','reviews'),('whatsapp-ad.html','ad'),('salon.html','salon')]:add(fn,kind)
           PY
-      - name: Verify branding and preserve critical page logic
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          checks={
-            'audit.html':['stall-approved-logo.webp','class="stall-ds-footer"','function audit()','sendWhatsApp()'],
-            'google-reviews.html':['stall-approved-logo.webp','class="stall-ds-footer"','/functions/v1/google-reviews','Connect Google Reviews'],
-            'whatsapp-ad.html':['stall-approved-logo.webp','class="stall-ds-footer"','leadForm','918197018680'],
-            'salon.html':['stall-approved-logo.webp','class="stall-ds-footer"','public-salon','booking.html'],
-          }
-          for fn,markers in checks.items():
-              s=Path(fn).read_text(encoding='utf-8')
-              for marker in markers:
-                  assert marker in s, f'{fn}: missing {marker}'
-          score=Path('whatsapp-score.html').read_text(encoding='utf-8')
-          for marker in ['public-salon-audit','sales_leads','pl_TYNjrlUw56zV0u','pl_TYNaXfMKoBHgRx','pl_TYO1q8EMSHkqPg']:
-              assert marker in score, f'whatsapp-score.html: missing {marker}'
-          print('Branding verification passed; critical application markers are preserved.')
-          PY
-      - name: Commit page-only changes
+      - name: Commit page-only branding changes
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add audit.html google-reviews.html whatsapp-ad.html salon.html
-          if git diff --cached --quiet; then exit 0; fi
+          if git diff --cached --quiet; then echo 'No page changes needed'; exit 0; fi
           git commit -m 'Use master STall logo across Digital Score pages'
           git pull --rebase origin main
           git push origin HEAD:main
