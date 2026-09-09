@@ -1,0 +1,24 @@
+name: Rebrand Salon Digital Score
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'rebrand_score.py'
+      - '.github/workflows/rebrand-score.yml'
+permissions:
+  contents: write
+jobs:
+  rebrand:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply STall landing-page design
+        run: python3 rebrand_score.py
+      - name: Commit branded page
+        run: |
+          git config user.name 'STall Automation'
+          git config user.email 'actions@github.com'
+          git add whatsapp-score.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Rebrand Salon Digital Score landing page'
+          git push
