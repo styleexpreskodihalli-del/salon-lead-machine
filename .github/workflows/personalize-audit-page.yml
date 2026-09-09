@@ -1,0 +1,51 @@
+name: Personalize Salon Audit Page
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/personalize-audit-page.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  personalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add personalized audit support
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('whatsapp-score.html')
+          s = p.read_text(encoding='utf-8')
+
+          marker = '/* STall personalized prospect mode */'
+          if marker not in s:
+              css = '''\n<style>\n/* STall personalized prospect mode */\n.prospect-banner{display:none;max-width:920px;margin:0 auto 18px;padding:13px 16px;border:1px solid rgba(217,173,82,.35);border-radius:14px;background:#fffaf0;color:#3a2b12;font-size:13px;line-height:1.45}\n.prospect-banner strong{color:#111216}\n.prospect-badge{display:inline-block;margin-bottom:5px;font-size:9px;font-weight:950;letter-spacing:.18em;color:#b07f20}\n</style>\n'''
+              s = s.replace('</head>', css + '</head>', 1)
+
+              banner = '<div id="prospectBanner" class="prospect-banner"><div class="prospect-badge">PERSONALISED SALON CHECK</div><strong id="prospectName"></strong><div id="prospectArea"></div></div>'
+              anchor = '<section class="score-card">'
+              s = s.replace(anchor, '<section class="score-card">' + banner, 1)
+
+              js = r'''\n<script>\n(function(){\n  const p=new URLSearchParams(location.search);\n  const salon=(p.get('salon')||'').trim();\n  const area=(p.get('area')||'').trim();\n  const rating=(p.get('rating')||'').trim();\n  const reviews=(p.get('reviews')||'').trim();\n  const source=(p.get('utm_source')||'outreach').trim();\n  const campaign=(p.get('utm_campaign')||'salon_prospect_sep_2026').trim();\n  if(!salon)return;\n  const banner=document.getElementById('prospectBanner');\n  const name=document.getElementById('prospectName');\n  const place=document.getElementById('prospectArea');\n  if(banner&&name){\n    name.textContent=salon;\n    place.textContent=area?'A quick digital health check prepared for your salon in '+area+'.':'A quick digital health check prepared for your salon.';\n    banner.style.display='block';\n  }\n  const heading=document.querySelector('.score-card h2');\n  if(heading) heading.textContent='Check '+salon+'\'s Free Salon Digital Score';\n  const desc=document.querySelector('.score-card>p');\n  if(desc) desc.textContent='This personalised check looks at your Google visibility, reviews, Instagram presence and WhatsApp readiness. Paste your Google Maps / Business Profile link to see the score.';\n  document.title=salon+' | Free Salon Digital Score | STall';\n  try{\n    const u=new URL(location.href);\n    u.searchParams.set('utm_source',source);\n    u.searchParams.set('utm_campaign',campaign);\n    history.replaceState({},'',u.toString());\n  }catch(e){}\n  const status=document.getElementById('status');\n  if(status) status.textContent='📍 Your location is used only to match the correct Google listing. Your salon details are not guessed or changed.';\n})();\n</script>\n'''
+              s = s.replace('</body>', js + '</body>', 1)
+              p.write_text(s, encoding='utf-8')
+              print('Personalized prospect mode added.')
+          else:
+              print('Personalized prospect mode already present.')
+          PY
+
+      - name: Commit personalized audit support
+        run: |
+          git config user.name 'STall Automation'
+          git config user.email 'actions@github.com'
+          git add whatsapp-score.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Enable personalized salon audit links'
+          git push
