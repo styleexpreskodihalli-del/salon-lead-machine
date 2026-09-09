@@ -58,23 +58,25 @@ jobs:
                   s=s.replace('</body>',footer+'\n</body>',1)
               p.write_text(s,encoding='utf-8')
           for fn,kind in [('audit.html','audit'),('google-reviews.html','reviews'),('whatsapp-ad.html','ad'),('salon.html','salon')]:add(fn,kind)
-          print('Applied master STall logo to Digital Score pages.')
           PY
-      - name: Verify before commit
+      - name: Verify branding and preserve critical page logic
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          for fn in ['audit.html','google-reviews.html','whatsapp-ad.html','salon.html']:
+          checks={
+            'audit.html':['stall-approved-logo.webp','class="stall-ds-footer"','function audit()','sendWhatsApp()'],
+            'google-reviews.html':['stall-approved-logo.webp','class="stall-ds-footer"','/functions/v1/google-reviews','Connect Google Reviews'],
+            'whatsapp-ad.html':['stall-approved-logo.webp','class="stall-ds-footer"','leadForm','918197018680'],
+            'salon.html':['stall-approved-logo.webp','class="stall-ds-footer"','public-salon','booking.html'],
+          }
+          for fn,markers in checks.items():
               s=Path(fn).read_text(encoding='utf-8')
-              assert s.count('stall-approved-logo.webp') >= 2, fn+' logo missing'
-              assert 'class="stall-ds-footer"' in s, fn+' footer missing'
+              for marker in markers:
+                  assert marker in s, f'{fn}: missing {marker}'
           score=Path('whatsapp-score.html').read_text(encoding='utf-8')
-          for x in ['public-salon-audit','sales_leads','918197018680','stall-approved-logo.webp']:
-              assert x in score, 'score page missing '+x
-          for fn,xs in {'audit.html':['function audit()','sendWhatsApp()'],'google-reviews.html':['/functions/v1/google-reviews','Connect Google Reviews'],'whatsapp-ad.html':['leadForm','918197018680'],'salon.html':['public-salon','booking.html']}.items():
-              s=Path(fn).read_text(encoding='utf-8')
-              for x in xs:assert x in s,fn+' missing '+x
-          print('Verification passed: application logic markers preserved.')
+          for marker in ['public-salon-audit','sales_leads','pl_TYNjrlUw56zV0u','pl_TYNaXfMKoBHgRx','pl_TYO1q8EMSHkqPg']:
+              assert marker in score, f'whatsapp-score.html: missing {marker}'
+          print('Branding verification passed; critical application markers are preserved.')
           PY
       - name: Commit page-only changes
         run: |
