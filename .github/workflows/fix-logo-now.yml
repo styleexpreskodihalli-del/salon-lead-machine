@@ -2,6 +2,10 @@ name: Fix STall Logo Now
 on:
   push:
     branches: [main]
+    paths:
+      - 'whatsapp-score.html'
+      - 'stall-approved-logo.webp'
+      - '.github/workflows/fix-logo-now.yml'
 jobs:
   fix-logo:
     runs-on: ubuntu-latest
@@ -11,26 +15,39 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Patch logo references
+      - name: Normalize legacy score logo references safely
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('whatsapp-score.html')
-          s=p.read_text()
           import re
-          s2=re.sub(r'<img class="logo"([^>]*?)src="data:image/[^;]+;base64,[^"]+"([^>]*)>', r'<img class="logo"\1src="stall-logo.svg"\2>', s)
-          s2=re.sub(r'(<img[^>]*?)src="data:image/[^;]+;base64,[^"]+"', r'\1src="stall-logo.svg"', s2)
-          if s2 != s:
-              p.write_text(s2)
+          p=Path('whatsapp-score.html')
+          s=p.read_text(encoding='utf-8')
+          original=s
+          # Only repair legacy inline/base64 logo references. Never replace the approved asset.
+          s=re.sub(r'<img class="logo"([^>]*?)src="data:image/[^;]+;base64,[^"]+"([^>]*)>', r'<img class="logo"\1src="stall-approved-logo.webp"\2>', s)
+          s=re.sub(r'(<img[^>]*?)src="data:image/[^;]+;base64,[^"]+"', r'\1src="stall-approved-logo.webp"', s)
+          if s != original:
+              p.write_text(s,encoding='utf-8')
+              print('Legacy inline logo reference repaired using the approved STall asset.')
           else:
-              print('No embedded logo references found')
+              print('No legacy inline logo reference found; approved logo left untouched.')
           PY
-      - name: Commit fix
+      - name: Verify score functionality before commit
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('whatsapp-score.html').read_text(encoding='utf-8')
+          for needle in ['public-salon-audit','sales_leads','918197018680','stall-approved-logo.webp']:
+              if needle not in s:
+                  raise SystemExit(f'Missing required score-page element: {needle}')
+          print('Score page verification passed.')
+          PY
+      - name: Commit fix only when needed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add whatsapp-score.html stall-logo.svg
+          git add whatsapp-score.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "Fix STall logo rendering"
+          git commit -m "Keep approved STall logo on score page"
           git pull --rebase origin main
           git push origin HEAD:main
