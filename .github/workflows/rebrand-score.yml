@@ -17,32 +17,39 @@ jobs:
         run: python3 rebrand_score.py
       - name: Polish footer branding
         run: python3 polish_footer.py
-      - name: Make STall logo browser-safe
+      - name: Normalize embedded STall logo
         run: |
-          python3 -m pip install --quiet pillow
           python3 - <<'PY'
           import base64, re
           from pathlib import Path
-          from PIL import Image
-          from io import BytesIO
           p=Path('whatsapp-score.html')
           s=p.read_text(encoding='utf-8')
           m=re.search(r'data:image/webp;base64,([^\"]+)', s)
           if m:
-              im=Image.open(BytesIO(base64.b64decode(m.group(1)))).convert('RGBA')
-              out=BytesIO(); im.save(out, format='PNG', optimize=True)
-              s=s.replace(m.group(0), 'data:image/png;base64,'+base64.b64encode(out.getvalue()).decode())
-              p.write_text(s, encoding='utf-8')
-              print('Converted embedded STall logo to PNG')
+              Path('/tmp/stall-logo.webp').write_bytes(base64.b64decode(m.group(1)))
+              print('Embedded WebP extracted')
           else:
-              print('Logo already browser-safe')
+              print('Logo already normalized')
           PY
+          if [ -f /tmp/stall-logo.webp ]; then
+            convert /tmp/stall-logo.webp /tmp/stall-logo.png
+            python3 - <<'PY'
+          import base64, re
+          from pathlib import Path
+          p=Path('whatsapp-score.html')
+          s=p.read_text(encoding='utf-8')
+          b64=base64.b64encode(Path('/tmp/stall-logo.png').read_bytes()).decode()
+          s=re.sub(r'data:image/webp;base64,[^\"]+', 'data:image/png;base64,'+b64, s)
+          p.write_text(s, encoding='utf-8')
+          print('Embedded STall logo normalized to PNG')
+          PY
+          fi
       - name: Commit branded page
         run: |
           git config user.name 'STall Automation'
           git config user.email 'actions@github.com'
           git add whatsapp-score.html
           git diff --cached --quiet && exit 0
-          git commit -m 'Fix STall logo rendering'
+          git commit -m 'Keep STall logo rendering stable'
           git push
 # Keep the production branding workflow authoritative for the score page.
