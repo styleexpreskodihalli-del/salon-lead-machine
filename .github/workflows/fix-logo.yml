@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install image tooling
+        run: python3 -m pip install --quiet pillow
       - name: Convert embedded logo to reliable PNG
         run: |
           python3 - <<'PY'
