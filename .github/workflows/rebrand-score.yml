@@ -32,7 +32,7 @@ jobs:
               print('Logo already normalized')
           PY
           if [ -f /tmp/stall-logo.webp ]; then
-            convert /tmp/stall-logo.webp /tmp/stall-logo.png
+            ffmpeg -loglevel error -y -i /tmp/stall-logo.webp /tmp/stall-logo.png
             python3 - <<'PY'
           import base64, re
           from pathlib import Path
