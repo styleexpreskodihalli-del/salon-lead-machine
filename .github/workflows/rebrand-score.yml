@@ -17,23 +17,23 @@ jobs:
         run: python3 rebrand_score.py
       - name: Polish footer branding
         run: python3 polish_footer.py
-      - name: Normalize embedded STall logo
+      - name: Restore exact STall logo
         run: |
           python3 - <<'PY'
           import base64, re
           from pathlib import Path
           p=Path('whatsapp-score.html')
           s=p.read_text(encoding='utf-8')
-          top=re.search(r'data:image/webp;base64,([^\"]+)', s)
-          shield=re.search(r'data:image/png;base64,([^\"]+)', s)
-          if top and shield:
-              svg=f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 128"><rect width="220" height="128" fill="white"/><image href="data:image/png;base64,{shield.group(1)}" x="6" y="8" width="100" height="112" preserveAspectRatio="xMidYMid meet"/><text x="112" y="78" font-family="Arial,sans-serif" font-size="48" font-weight="800" fill="#20232a">all</text><text x="112" y="101" font-family="Arial,sans-serif" font-size="7" letter-spacing="3" fill="#d9ad52">THAT'S ALL</text></svg>'''
-              svg64=base64.b64encode(svg.encode()).decode()
-              s=s.replace(top.group(0), 'data:image/svg+xml;base64,'+svg64)
-              p.write_text(s, encoding='utf-8')
-              print('STall logo normalized to SVG')
-          else:
-              print('Logo normalization skipped')
+          logo64='iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAIAAABMXPacAABQoklEQVR42o19d9wcV3X2ObfMzO5bpVeS'
+          logo_src='data:image/png;base64,'+logo64
+          pattern=r'<div class="brand"><img class="logo" alt="STall logo" src="[^"]*"><div class="brand-name">STall<small>THAT\'S ALL</small></div></div>'
+          replacement='<div class="brand"><img class="logo" alt="STall logo" src="'+logo_src+'"></div>'
+          s,n=re.subn(pattern,replacement,s,count=1)
+          s=s.replace('.logo{width:82px;height:82px;', '.logo{width:118px;height:72px;')
+          s=s.replace('.logo{width:68px;height:68px}', '.logo{width:104px;height:64px}')
+          p.write_text(s,encoding='utf-8')
+          print('Exact STall logo restored; header matches approved branding.')
+          print('Header match count:',n)
           PY
       - name: Commit branded page
         run: |
@@ -41,6 +41,6 @@ jobs:
           git config user.email 'actions@github.com'
           git add whatsapp-score.html
           git diff --cached --quiet && exit 0
-          git commit -m 'Keep STall logo rendering stable'
+          git commit -m 'Restore exact STall logo'
           git push
 # Keep the production branding workflow authoritative for the score page.
