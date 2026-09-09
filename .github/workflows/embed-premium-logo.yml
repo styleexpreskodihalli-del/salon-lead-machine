@@ -16,29 +16,92 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply approved logo and footer copyright
+      - name: Apply approved logo to Digital Score pages
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('whatsapp-score.html')
-          s=p.read_text()
-          for old in ('stall-premium-top.svg','stall-premium-footer.svg','stall-logo.svg','stall-exact-approved.svg','stall-exact-approved-footer.svg'):
-              s=s.replace(old,'stall-approved-logo.webp')
-          s=s.replace('.logo{width:118px;height:72px;','.logo{width:150px;height:82px;')
-          s=s.replace('.logo{width:104px;height:64px;','.logo{width:125px;height:72px;')
-          s=s.replace('.footer-mark{width:106px;height:89px;','.footer-mark{width:150px;height:101px;')
-          s=s.replace('.footer-mark img{width:106px;height:89px;','.footer-mark img{width:150px;height:101px;')
-          copyright='<div class="footer-copyright">© 2026 STall. All rights reserved.</div>'
-          if 'footer-copyright' not in s:
-              s=s.replace('<div class="footer-nav">DISCOVER <span>•</span> CONNECT <span>•</span> GROW</div>','<div class="footer-nav">DISCOVER <span>•</span> CONNECT <span>•</span> GROW</div>'+copyright)
-              s=s.replace('.footer-nav span{padding:0 7px;color:#555861}','.footer-nav span{padding:0 7px;color:#555861}\n.footer-copyright{margin-top:9px;font-size:9px;letter-spacing:.08em;color:#6f727c}')
-          p.write_text(s)
+
+          LOGO = 'stall-approved-logo.webp'
+
+          def add_css(s):
+              css = '''
+          /* STall master logo treatment — shared across Digital Score pages */
+          .stall-brandbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:10px 0 18px}
+          .stall-brandbar img{width:150px;height:82px;object-fit:contain;display:block}
+          .stall-brandbar .stall-nav{font-size:10px;font-weight:900;letter-spacing:.2em;color:#777;text-transform:uppercase}
+          .stall-ds-footer{margin-top:36px;padding:26px 0 18px;border-top:1px solid rgba(199,155,82,.28);display:grid;grid-template-columns:1fr 1.4fr 1fr;align-items:center;gap:25px}
+          .stall-ds-footer img{width:150px;height:82px;object-fit:contain;display:block}
+          .stall-ds-footer .mid{font-size:10px;font-weight:900;letter-spacing:.18em;color:#333}
+          .stall-ds-footer .sub{margin-top:7px;font-size:11px;line-height:1.5;color:#777;letter-spacing:0}
+          .stall-ds-footer .right{text-align:right;font-size:9px;line-height:1.7;letter-spacing:.12em;color:#9a721e;font-weight:900}
+          .stall-ds-footer .copy{margin-top:6px;color:#888;letter-spacing:.04em;font-weight:500}
+          @media(max-width:700px){.stall-brandbar{padding:8px 0 14px}.stall-brandbar img{width:125px;height:68px}.stall-brandbar .stall-nav{display:none}.stall-ds-footer{display:flex;flex-direction:column;text-align:center;gap:14px}.stall-ds-footer .right{text-align:center}.stall-ds-footer img{width:140px;height:76px}}
+          '''
+              if 'STall master logo treatment' not in s:
+                  s=s.replace('</style>', css+'\n</style>', 1)
+              return s
+
+          def add_brand_and_footer(path, header_marker, footer_marker):
+              p=Path(path)
+              s=p.read_text(encoding='utf-8')
+              s=add_css(s)
+
+              # Remove legacy text-only logo treatments from the page header where applicable.
+              if header_marker == 'AUDIT':
+                  old='<div class="brand">Salon <span>Lead Machine</span></div>'
+                  new='<header class="stall-brandbar"><img alt="STall logo" src="'+LOGO+'"><div class="stall-nav">DISCOVER <span>•</span> CONNECT <span>•</span> GROW</div></header>'
+                  s=s.replace(old,new,1)
+                  if '<header class="stall-brandbar">' not in s:
+                      s=s.replace('<div class="wrap">', '<div class="wrap">'+new, 1)
+              elif header_marker == 'REVIEWS':
+                  old='<div class="logo">Salon <span>Lead Machine</span></div>'
+                  new='<div class="logo"><img alt="STall logo" src="'+LOGO+'"></div>'
+                  s=s.replace(old,new,1)
+                  s=s.replace('.logo{font-weight:900;font-size:21px}', '.logo{font-weight:900;font-size:21px;display:flex;align-items:center}.logo img{width:150px;height:82px;object-fit:contain;display:block}',1)
+              elif header_marker == 'AD':
+                  old='<header class="top"><div class="logo">Salon <span>Lead Machine</span></div><div class="pill">FREE SALON DIGITAL AUDIT</div></header>'
+                  new='<header class="top"><div class="logo"><img alt="STall logo" src="'+LOGO+'"></div><div class="pill">FREE SALON DIGITAL AUDIT</div></header>'
+                  s=s.replace(old,new,1)
+                  s=s.replace('.logo{font-weight:900;font-size:21px}', '.logo{font-weight:900;font-size:21px;display:flex;align-items:center}.logo img{width:150px;height:82px;object-fit:contain;display:block}',1)
+              elif header_marker == 'SALON':
+                  new='<header class="stall-brandbar"><img alt="STall logo" src="'+LOGO+'"><div class="stall-nav">DISCOVER <span>•</span> CONNECT <span>•</span> GROW</div></header>'
+                  if '<header class="stall-brandbar">' not in s:
+                      s=s.replace('<main class="wrap">', new+'<main class="wrap">', 1)
+
+              footer='''<footer class="stall-ds-footer"><div><img alt="STall logo" src="'''+LOGO+'''"></div><div class="mid">FREE SALON DIGITAL SCORE<div class="sub">For Salon Owners. Built to help you get found, trusted and contacted.</div></div><div class="right">DISCOVER <span>•</span> CONNECT <span>•</span> GROW<div class="copy">© 2026 STall. All rights reserved.</div></div></footer>'''
+              if 'class="stall-ds-footer"' not in s:
+                  s=s.replace('</body>', footer+'\n</body>', 1)
+              p.write_text(s,encoding='utf-8')
+
+          add_brand_and_footer('audit.html','AUDIT','footer')
+          add_brand_and_footer('google-reviews.html','REVIEWS','footer')
+          add_brand_and_footer('whatsapp-ad.html','AD','footer')
+          add_brand_and_footer('salon.html','SALON','footer')
+          print('Digital Score logo standardization applied without touching scoring, APIs, lead capture, pricing, or redirects.')
           PY
-      - name: Commit approved logo and footer update
+      - name: Verify critical functionality remains present
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          checks = {
+              'whatsapp-score.html': ['public-salon-audit','sales_leads','pl_TYNjrlUw56zV0u','pl_TYNaXfMKoBHgRx','pl_TYO1q8EMSHkqPg','918197018680'],
+              'audit.html': ['function audit()','sendWhatsApp()','sales.html#pricing'],
+              'google-reviews.html': ['/functions/v1/google-reviews','Connect Google Reviews','Sync Reviews'],
+              'whatsapp-ad.html': ['leadForm','918197018680','utm_campaign'],
+              'salon.html': ['public-salon','booking.html','Request an Appointment']
+          }
+          for fn, needles in checks.items():
+              s=Path(fn).read_text(encoding='utf-8')
+              missing=[x for x in needles if x not in s]
+              if missing:
+                  raise SystemExit(f'{fn}: missing critical content: {missing}')
+          print('Critical functionality checks passed.')
+          PY
+      - name: Commit approved logo standardization
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add whatsapp-score.html
+          git add audit.html google-reviews.html whatsapp-ad.html salon.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Add STall copyright to score footer'
+          git commit -m 'Use approved STall logo across Digital Score pages'
           git push
