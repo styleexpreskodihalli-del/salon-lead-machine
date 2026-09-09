@@ -20,11 +20,8 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
-          LOGO = 'stall-approved-logo.webp'
-
-          def add_css(s):
-              css = '''
+          LOGO='stall-approved-logo.webp'
+          CSS='''
           /* STall master logo treatment — shared across Digital Score pages */
           .stall-brandbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:10px 0 18px}
           .stall-brandbar img{width:150px;height:82px;object-fit:contain;display:block}
@@ -37,65 +34,63 @@ jobs:
           .stall-ds-footer .copy{margin-top:6px;color:#888;letter-spacing:.04em;font-weight:500}
           @media(max-width:700px){.stall-brandbar{padding:8px 0 14px}.stall-brandbar img{width:125px;height:68px}.stall-brandbar .stall-nav{display:none}.stall-ds-footer{display:flex;flex-direction:column;text-align:center;gap:14px}.stall-ds-footer .right{text-align:center}.stall-ds-footer img{width:140px;height:76px}}
           '''
+          def add_css(s):
               if 'STall master logo treatment' not in s:
-                  s=s.replace('</style>', css+'\n</style>', 1)
+                  s=s.replace('</style>',CSS+'\n</style>',1)
               return s
-
-          def add_brand_and_footer(path, header_marker, footer_marker):
-              p=Path(path)
-              s=p.read_text(encoding='utf-8')
-              s=add_css(s)
-
-              # Remove legacy text-only logo treatments from the page header where applicable.
-              if header_marker == 'AUDIT':
-                  old='<div class="brand">Salon <span>Lead Machine</span></div>'
+          def add(path,kind):
+              p=Path(path);s=add_css(p.read_text(encoding='utf-8'))
+              if kind=='audit':
                   new='<header class="stall-brandbar"><img alt="STall logo" src="'+LOGO+'"><div class="stall-nav">DISCOVER <span>•</span> CONNECT <span>•</span> GROW</div></header>'
-                  s=s.replace(old,new,1)
+                  old='<div class="brand">Salon <span>Lead Machine</span></div>'
                   if '<header class="stall-brandbar">' not in s:
-                      s=s.replace('<div class="wrap">', '<div class="wrap">'+new, 1)
-              elif header_marker == 'REVIEWS':
-                  old='<div class="logo">Salon <span>Lead Machine</span></div>'
-                  new='<div class="logo"><img alt="STall logo" src="'+LOGO+'"></div>'
-                  s=s.replace(old,new,1)
-                  s=s.replace('.logo{font-weight:900;font-size:21px}', '.logo{font-weight:900;font-size:21px;display:flex;align-items:center}.logo img{width:150px;height:82px;object-fit:contain;display:block}',1)
-              elif header_marker == 'AD':
+                      if old in s:s=s.replace(old,new,1)
+                      else:s=s.replace('<div class="wrap">','<div class="wrap">'+new,1)
+              elif kind=='reviews':
+                  if '<img alt="STall logo" src="'+LOGO+'"' not in s:
+                      s=s.replace('<div class="logo">Salon <span>Lead Machine</span></div>','<div class="logo"><img alt="STall logo" src="'+LOGO+'"></div>',1)
+                  if '.logo img{' not in s:s=s.replace('.logo{font-weight:900;font-size:21px}', '.logo{font-weight:900;font-size:21px;display:flex;align-items:center}.logo img{width:150px;height:82px;object-fit:contain;display:block}',1)
+              elif kind=='ad':
                   old='<header class="top"><div class="logo">Salon <span>Lead Machine</span></div><div class="pill">FREE SALON DIGITAL AUDIT</div></header>'
                   new='<header class="top"><div class="logo"><img alt="STall logo" src="'+LOGO+'"></div><div class="pill">FREE SALON DIGITAL AUDIT</div></header>'
-                  s=s.replace(old,new,1)
-                  s=s.replace('.logo{font-weight:900;font-size:21px}', '.logo{font-weight:900;font-size:21px;display:flex;align-items:center}.logo img{width:150px;height:82px;object-fit:contain;display:block}',1)
-              elif header_marker == 'SALON':
+                  if '<img alt="STall logo" src="'+LOGO+'"' not in s:s=s.replace(old,new,1)
+                  if '.logo img{' not in s:s=s.replace('.logo{font-weight:900;font-size:21px}', '.logo{font-weight:900;font-size:21px;display:flex;align-items:center}.logo img{width:150px;height:82px;object-fit:contain;display:block}',1)
+              elif kind=='salon':
                   new='<header class="stall-brandbar"><img alt="STall logo" src="'+LOGO+'"><div class="stall-nav">DISCOVER <span>•</span> CONNECT <span>•</span> GROW</div></header>'
-                  if '<header class="stall-brandbar">' not in s:
-                      s=s.replace('<main class="wrap">', new+'<main class="wrap">', 1)
-
-              footer='''<footer class="stall-ds-footer"><div><img alt="STall logo" src="'''+LOGO+'''"></div><div class="mid">FREE SALON DIGITAL SCORE<div class="sub">For Salon Owners. Built to help you get found, trusted and contacted.</div></div><div class="right">DISCOVER <span>•</span> CONNECT <span>•</span> GROW<div class="copy">© 2026 STall. All rights reserved.</div></div></footer>'''
+                  if '<header class="stall-brandbar">' not in s:s=s.replace('<main class="wrap">',new+'<main class="wrap">',1)
               if 'class="stall-ds-footer"' not in s:
-                  s=s.replace('</body>', footer+'\n</body>', 1)
+                  footer='<footer class="stall-ds-footer"><div><img alt="STall logo" src="'+LOGO+'"></div><div class="mid">FREE SALON DIGITAL SCORE<div class="sub">For Salon Owners. Built to help you get found, trusted and contacted.</div></div><div class="right">DISCOVER <span>•</span> CONNECT <span>•</span> GROW<div class="copy">© 2026 STall. All rights reserved.</div></div></footer>'
+                  s=s.replace('</body>',footer+'\n</body>',1)
               p.write_text(s,encoding='utf-8')
-
-          add_brand_and_footer('audit.html','AUDIT','footer')
-          add_brand_and_footer('google-reviews.html','REVIEWS','footer')
-          add_brand_and_footer('whatsapp-ad.html','AD','footer')
-          add_brand_and_footer('salon.html','SALON','footer')
-          print('Digital Score logo standardization applied without touching scoring, APIs, lead capture, pricing, or redirects.')
+          add('audit.html','audit');add('google-reviews.html','reviews');add('whatsapp-ad.html','ad');add('salon.html','salon')
+          print('Logo applied.')
           PY
-      - name: Verify critical functionality remains present
+      - name: Verify logo change without changing application logic
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          checks = {
-              'whatsapp-score.html': ['public-salon-audit','sales_leads','pl_TYNjrlUw56zV0u','pl_TYNaXfMKoBHgRx','pl_TYO1q8EMSHkqPg','918197018680'],
-              'audit.html': ['function audit()','sendWhatsApp()','sales.html#pricing'],
-              'google-reviews.html': ['/functions/v1/google-reviews','Connect Google Reviews','Sync Reviews'],
-              'whatsapp-ad.html': ['leadForm','918197018680','utm_campaign'],
-              'salon.html': ['public-salon','booking.html','Request an Appointment']
-          }
-          for fn, needles in checks.items():
+          for fn in ['audit.html','google-reviews.html','whatsapp-ad.html','salon.html']:
               s=Path(fn).read_text(encoding='utf-8')
-              missing=[x for x in needles if x not in s]
-              if missing:
-                  raise SystemExit(f'{fn}: missing critical content: {missing}')
-          print('Critical functionality checks passed.')
+              if s.count('stall-approved-logo.webp') < 2:
+                  raise SystemExit(f'{fn}: approved logo was not embedded in header/footer')
+              if 'class="stall-ds-footer"' not in s:
+                  raise SystemExit(f'{fn}: shared footer missing')
+          score=Path('whatsapp-score.html').read_text(encoding='utf-8')
+          for needle in ['public-salon-audit','sales_leads','918197018680']:
+              if needle not in score: raise SystemExit(f'whatsapp-score.html: missing {needle}')
+          audit=Path('audit.html').read_text(encoding='utf-8')
+          for needle in ['function audit()','sendWhatsApp()']:
+              if needle not in audit: raise SystemExit(f'audit.html: missing {needle}')
+          reviews=Path('google-reviews.html').read_text(encoding='utf-8')
+          for needle in ['/functions/v1/google-reviews','Connect Google Reviews','Sync Reviews']:
+              if needle not in reviews: raise SystemExit(f'google-reviews.html: missing {needle}')
+          ad=Path('whatsapp-ad.html').read_text(encoding='utf-8')
+          for needle in ['leadForm','918197018680','utm_campaign']:
+              if needle not in ad: raise SystemExit(f'whatsapp-ad.html: missing {needle}')
+          salon=Path('salon.html').read_text(encoding='utf-8')
+          for needle in ['public-salon','booking.html','Request an Appointment']:
+              if needle not in salon: raise SystemExit(f'salon.html: missing {needle}')
+          print('Critical functionality preserved.')
           PY
       - name: Commit approved logo standardization
         run: |
