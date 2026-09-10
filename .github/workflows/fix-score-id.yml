@@ -1,0 +1,37 @@
+name: Fix Audit Score ID Conflict
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-score-id.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix-score-id:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fix duplicate score element ID
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('whatsapp-score.html')
+          s = p.read_text(encoding='utf-8')
+          old = '<section class="score-card" id="score">'
+          new = '<section class="score-card" id="audit-score">'
+          if old in s:
+              s = s.replace(old, new, 1)
+          s = s.replace('href="#score"', 'href="#audit-score"')
+          p.write_text(s, encoding='utf-8')
+          print('Fixed duplicate id="score": audit container is now id="audit-score" and score number keeps id="score".')
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name 'STall Automation'
+          git config user.email 'actions@github.com'
+          git add whatsapp-score.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Fix score display ID conflict'
+          git push
