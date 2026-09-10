@@ -1,0 +1,49 @@
+name: Apply Master STall Logo
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-master-stall-logo.yml'
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install exact master logo
+        env:
+          LOGO_B64: "UklGRgAUAABXRUJQVlA4IPQTAADwWACdASrIAMgAPqlGnUsmI6+nq9IdgfAVCWJDslQGAoGuVz6/+3emPcH8n/W+SnrrzNefvJZ6tf037BH6vdKHzB+b9/xPWr/kPUK/tH/A6270Mell/uv/a9J7r7uCo/wfcN/me4v9a/lfzAzkP3y/ZfmP7SeBvAL/Fv6H/luC7AD+Zf1j/meFl/q+jPzZe4H+r3+q5CWgF/OP7h/4/Uw+s/Qf+h/6P/2e4Z/Pf7n/2j2tQwocg9iHRm0j8IGzpI6Ti+dsOiLBF5c0ZOhGH25vudlLlX2Ga4lB/aSzg1f6SvUucb3+Te/yFkCoRMqhSCu0JtERBzBSiQZnxbxbUdqeLYkrnbG7MOZpLpvvTpvJ5eR/f9+f1qk/neaF6XdCNsOe/qCavBVRUO1t0ULjlkdyPQMQN1I5K5ZG+lORjlH7e0Z7ExNrFMefA+lrRKriBuD0QjiTEIQFaBGAfvsf/wJq7GMzbOYZuXYHnnyPAzf8tEFmPQCCyb9arpOoUqznvDrQp5NAY2u+u1UVvWksk/neCimIWNEFAVUj+eY7lT1fmhMMzgF28mEdVZb3Iop6jAyvs8UDrVkBP1kOvwQa65aKA+aHOwlNOT/kGqZ2z5d3/uoTKqvz/F4LJmxfzPWc3KzhCmWsQNWRMMx61Nh5i2/829aM7rtOvafjy/1jcAleyDwRAAY0srIjLHylsPjJhZT0xaTr+tk6NFrXn1OHwiPJSW03zHaYC8Of+Ey/vpSOLvz22bgFysX8OwHDh7MMkAnOHUvnPsKhpZcacsEVavK+OsxnKNutTC6lqLTgR4ErqGVNo6h+PLyQStiBsfayDrmZdVzPVaswqjiI8RsJOcF9+LZvtbRJxWe1IPeKUeZpqEhsb53C3Nef7NFFjuGeZIs8e+Dw2IZPYkJ0QJ5sZnkHzMQXrsDpRRKrG3jENEvBWrjXPdarR77jdv4yJsgoYAAA/urVVi26uQTUFkE0LnZ3uAZnmZ/B/wOmKf/7/hLf/Qd8u2LI9yfQClfgZgqg5r2sPmQhjHzoFsves9CJgen8Qpj02yK4hE8uxenHleX3F7USfMP5c3Ej+eDVTG1G5L71qeK+5AKlS+cBijyDtLdQ/q390F3q1N1rU/GJeGZHbniH5ZhJtU+hBCwiNBSdk6O1P1Ed4i8P96HorhD4j4X57RFlVHVq6ax999Jl/3bbZee+dFpbDTvWZiow56Otqq8m68JjiS+tWPp8Ig0l7TiyoUa7k1SAeQXwOjb03LV9TOgPwxJmuWjiebCa+Jhq4q10GHA2DeOwP7zYwnq5MqLq3IWmc95J3KN0TJ4aN0nESTKEIfmPsIUrm81Q7DPdxgFfa++8Ix1ucDYvLnPbA9hu4B23A9M/ypYwUWDAfoFDgWq3M6ne6A7oy0i2rpE6LjG/HeqzCCwe7ZUkkfBX3xcq5085eJwmtNMy+ILuD+S7Sin/NKrbxAggTyOdaRNCl2c5SLJVFjXfMpvc6cOf/vylhkS5VR0oh9P9H0q6s775G7IOxNk8nTBcOigAkvorcyIP6TEvGD1vcjpY0YpNI4NMMG4WK5N7+mRTj9x8L6au4LyshDKqufD/ouFd76nkf6h6CUQhaUxspDPP1kC1d5Q0V2KJJlYYkGf0fW3WOD57LcMW2zcIQAY58A90SH42928SOz4b/1BVbquaMdgMtD2OCacY5m7Wo3Ppv6dYUYLZ7ehEIt7Lkuso3jhqRe6VyvvxnrJHfticqgSNlCI0kjUh8UfPtoxpUA+x/VmCyKkuS1Xq6WREJx/vIhDZThzAellyng/0Oem0DoONdGuHS1QzV84vcVKbyTSy+DJ+l6Gg7+3dhMUk1X92yp+mAUpMgSQQgZm1eZX+fGi+C0Mf55D0SSKFaSLT8F6aHZeP5Q7ehtZPbJ6LdLbTSnh5wpMfqpMkSdZ7tebj9xQbaI/0AXFdZChzQpieZ8b2+MHHj5Cp+z+l7ULqfXODfj2PgtX9CEm+smzNqpXiWSZNNPSms8Ho6rdCPHtSYYtSgxaY/vE9Qro+vhVcySf1IuGQfNzAD4LXKqWg0F6B+tZSBcFc0T4MllMGSRh71UdRQPSnv4S6f6SDmIYy2o80Ra7XB3dn1XNRfR+fmR1d5WY9hL/iDnQ1be0QY/WEwwmOm8sOwfMPEfo/rBjQ2xYR4HhoKSbqRxMWv+lESP1eyVxrqV6f4Z/GIe8b5/UB7w/gvaDEXBoC50Qcy1ISkwcUjxu1rIEjYWvg+jhBCCQUVLzO+VyioDCDgv5MqgN+mqzCZW8yGEFxZVNgwIH8osSLPcGA8AC4GbwkGgkKCSCkgW3fHQMQmmz5ljRVFZlO5Zhzvp8jaIJGGYyxvM+xrce1QAEpP2RcFPq6+L6U4QIy7AQWgcv1w37YjrPbGtqJEAe5eATCfVNiMb8vm5yp0X1elzmYo1abwyxHNzarZJyZ8SN/5Cc0LpYewaPnIcY82G5umz3vLuORQZ/0JK09kbP52Gfoi5ocOaV43yc3g8coLK4QWBB85dw+xh4aoyQ6+MoIea+6ztBUuadbhBgTRKobwalWU2fpfEuXAnkrVfCqcGTKNFo5IMAXiZMdsYTv+V7DtVk0VMkWE7dtYqKhHzl0DYGZ91DJd7DFStcwYKDN9wPI1E0c26Vyen9IvfqYoB8lrLEvAW7rVV5Ty5xF6v901adL9aQCKOTIG+gS8mJy7/y28P7AmZcCgJdK1parL18HgzsUDieoRcoyTank8HiMQMVnyXYS6CENmVZLVUPlF4dmJWbAG3CjGTUMYOEcg32SpRu4FYgShcUJMT918vyZUm9CKmdA3DSKLGwpLVoVeBNQbyXeUolWdceTSJcddqmk9g7X/XyJaYViQ3ZoqGmg80SaU+JB+ke69vmEAmgFuYm6MCplMWhNzACYedYC/c287Sunx0Abp7QBaR5CX5nMx/LQw339UpefmI4bgEH/axA4W1W9hZlqBmYe0pyMsbLgR8SN/R1Jabi08+Y4/n78zZnRJ/zESIKamKJVCxrRV7Coe70eO0JiQSuzS7kdKQpniK0QLSt+IYmoMjAF9+p5COjUwlBSXOsX+nb/MjRRyk30O7pY0xuFQ9ybYWZp+4igrLhafr3d5ZenngaEMFePSBoHazzj7gibMApMYEd3UYhOp2/OQVxmjbd9iZly4QT1jFqhcv29TVi2uiYuJvzH1HNh/pOgc14L/nx/ChB+ggkQRUFC+DKODGE6P9PVjpoiWQdp10qjBiP8anQ3Edph8P6oF16yMy699eYMH2wYfveGOXonby47ulCNYYFvyZE5Skul9QGl+0kJZogAa/6CdqQEAqepCZK5GKU3LVsCDWyvbQDowMnZEFSbnrCIW8z348yLKn3sx9bk34/Rxcnek+n3SJQF4laLfpga65ZmwNAkI6XS+Ugo8sRVrbIEp/GyE78Ie7a+sxL+kqFmNjl5Jh2AvTdD70ehvJhi7P9pMvMQKAVRoXc+WtDdOGFZbA7TlKgEmgCgdCLnjM4R8kncveMHugm6tDI1KmHIbk2dWWkUlvABUivC0KwV7FvkjaeER+9Wer87fefQmiEhs8uQGiOgJmBBDi1Z6oXIYc0Zf9PY5NhkntPVuGbYr+yZz+sJk2YtAS4TuVODfTYziEDuLfhXSkn8rVNHKLSUc9UkBfmy4QazE+ZA8AhSj8HShON1/jGXlWm8AqZ8j/RGfNc88Gckmm2rP7wvie81uspiWo/+SC0l1P1OHUbqGwAgH3imfRvJTKnop5n3+Fgb295x4pBbvkeEvSP6VebZkODmrGc6m2+dER/CdzUd1iqEcOKJsij5knuVgzv1P2S2E7RVYs7ICeV5s3h4W0MHnMsbX5v+pEab0IiZO4XXdFZIH2Sb9E1rW4szCNGXN9b2UuVuMu7Jl4VPVwnBHguv79GUI+ehOK528In1ZVzneXy99h2dmMzBK17PSzh+Z+LVxTi6zMBa0JG7K/dRSkJEIrlzAsisuO7kIZOZlTFRiwiNcmtZPD6XXqsxuZMijoAMZyVfh3C+7zXXmmP2/u/Hn+//x+zMlslYWbgXqdZgQKwcDUmTTBxNhxuDlEzzIo04WTX3rXNl64GdX3AMV8SybWdOvaQRXwChuBULyYufQaXQLiICn1yRkqdUmh0BLB8p20dn5bmNAwJkii0YkAXJSQJ2sPinodVswbTGZ8hVZKctgh64NYUEUvVdQY9k+n6fd9i4/1YNq46rHmIzdeMRJ1J0FLZlcFwvoC2by4Vjhj709Y+5Ct87rL2DvKoqt4JctK019QWo59Xa6UPIK4MQwL1qQt4THpHgLL3keboSrIvvF6oKarUZc7bpqzH3MGibyYTN7lw9Z4jAqk4n5nVGFpLjsfz/d15xuEtYAhmnPqMaTK+bcS/rB3jy3z5PeSQD9c2otGwmyLKyVsbfEgxELGu/j5o+cVed1QiTwitRYXmcNg2c4pWHLNT9itUnZQok516XmUSrIN/+/wSyovHuVVji1C9ujRq4qO0G5/XCuV39P0y7ync7B/yA/d+EVDuyd2WIqeX7t7gBQG2JSDBRwaDnDkrCAciZpAqW6GVQXloRzUPaRazUku+EH74xKLEjbbONV3qRwl3+RRCmkZO8Eo4IGMZ59TaTYzq5extTwkv6O0+exxWAkbAQzt8zNtjD18nBX+gVEC38FdM28mb+N8Gh6CxWxmq0UNzfoKONQ3ADtXNZrkx1BMEM9dwSgxGn3dEhNUblhgX/LvtpPt6iv0aLH9VHXnrXGrB9hKpXErNKgxmq1cluezZtj5gWCeNyUuhNGRV07/HJYRSL5zNNhPZK5Xy3iLD+lOOsnhSREoxT+boHTmHGBxVZnUGZ5c5Oh0S43lRnBp50fmZ+8LwOzBuTZR+jUvrez12ltrXmQoqtrbyZIQ6Ra6xMMoRp7m6eM+TDI70IJVxI/1gFrQkqEQByvDZmSYdOvosDBcL7yJXX6lNWqmaHz3/irJ6+qeAvLyMoCm+9RRNG920tf1fEUPyuNipcc4CE3RCvpIQ5r7fnQfY0MHQ2gNTOWuEt9mqr7470kKrUmzpWzrpK055XnLap2B+ZHAFer6dcg7pzIkHdm1g6xaFiv9ut4RobGmtVH18+Hr9KWAf2yKcpz3ZFUZtY0mR+btKCw5WC1rgzyS5cAPElyupg60EUmJ2muWlbPtCFf/7yK/in/9oldyBBDfByLMeK9G1ANdYZSRQJTchv112A5BuoNtwH+MMVTV5/9vjSUV1l2orrHkwYjAF/h3op35H7JLdkblvk16XYW3fzRgTpuSiIagCWWWFyWJqhBlg6Cv1ri/Fqa/yqW3Uv4eemRIROGHXjQzPEjdcsooIk3wx1J95x2U+dp9qMKSgTjVSe/WOaJi8o90L9EYzcps/AEX7iFkRuOoL4cX0HW8qgSNsg6VJx7sUN5oVbyQ4bkDHqRdHkdMVd8NfxU7sO2/f02a8c4Xt6ERM7LjR54UUNLRI06Ly/unoY36pNVl5WKc+bq0lt60MbFD7M5Gal5AHEExX+ejcc9z4mfMNnDGB7cm/+G/SfBQ98Ujj7s0XRQ+VklL95hZ8SJxVfMhYvXXnZzccrvHsUtZVIQU+PWxMHgXnQiLxUNBvNAstnvqgmqg02jDcWThdKlZvq8svnhGlsWViFYWZwk/NG5Rhlf5WrumhjnvpvFd+4dan8U/VnYASPpQ1+T22XlRvvbFuBls0nNHIqKbI0oqgm/BNny2Sq60pf/FAB/OniFDaEiTTpFPhymA1iv0KZvjsz1t+xV09djLZmyO7nOIsWH8llTKTPALZTPJIckKkCo8N/k7snaZnyWBroJWPAeYZp1vn4iPHuGe0AAeDBGed+yBFZxHCC57MUcWIuB05knTcL6TrywEQAKLQj70gL3i/NMMcUgE8xQ9O0vHnCJQ+C2Uaf6047uhSRannjwRQ9YcnRrrZTaiH/ncKUF9k1xS50cBcr7WtVPGpbJ5o9XJQgAJccKhT7chFHT9aP7SYsYT8vdzL7lqNdJwa2/JsVM+kG/0eqZuDrLiSDyQx0/QuDrCVt0X1336NPCcvMhyW1IqC32y8gB2Njh0dLQvZrYJHKbfH14MPErdG2kn9r2eFVVG3xXxKqHjndNmlfTE868hAQpzqrYznqHlDMeYO0jh145LtMnlOEsIWmxs+UOnXVrGOay+Zl51PA4aOf2nUvtkm+i20EKbuoEdBWeDlTLOx25KI7WiSyvwQO3EAil+0cIK5z9YAFNkta8PVdDAfyJADH3ySkemRbSEgbLWjHRHevyw/5/9ZUcC2/vR4e1AxxJVfSIqgxZxdsaWAQk5V28OFBJjnEF8uK3n03N+udUlt2uFf+GOTPTunHJ7tzjRiRkfV/6zmWldcZlce3JFT7T9qULTT+z3rzXtcG/JciBfdTCWGHWPiYYUSD+6Oby9NiLHMF+vUaYoGk1VgaKGdW0IogMtecfPZP9AyhWuNK9wzEDfqc2trlNwntjphLaF9DjcHiIwc381oofFE/pXG6qGS/mN6pQ6Acjodihae+igVGwU3e4wvy8LSrFftB3hYEoU8qGKunLGPWDlDkUr5M5KreSmYNNlfwvvX693liPFIFWE/+TycRb/jOmtwtYWBa8WDwyh2H12t3/UURsMrkEwp9CTs6yCPQ+ys/auebM65ZmrOoK9WPMrOGCsnIwPhEOrlnWs/v192+gdkBVl3j75eEpRvc4x0DcnYU/leAQWzRJudCvEG4HS0friXBj/Wn/2P5d1fe+5AFVfYYvbUe63Fqlcg0/QrYQG5eAguawBDQ1j4MD0mJbjWCi5DefqJmf6AAAA=="
+        run: |
+          echo "$LOGO_B64" | base64 -d > stall-master-logo.webp
+      - name: Apply logo to every HTML page
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          logo='stall-master-logo.webp'
+          for p in Path('.').glob('*.html'):
+              s=p.read_text(encoding='utf-8')
+              # Replace all known previous STall logo assets.
+              s=re.sub(r'(src=[\"\'])(?:stall-approved-logo-v2\.webp|stall-approved-logo\.webp|stall-logo\.webp|stall-logo-clean-transparent\.png|stall-exact-logo-transparent\.png)([\"\'])',r'\1'+logo+r'\2',s)
+              # Replace embedded logo data URIs used by the main score page.
+              s=re.sub(r'src=[\"\']data:image/(?:png|webp);base64,[A-Za-z0-9+/=]+[\"\']','src="'+logo+'"',s)
+              # Ensure text-only STall/Salon Lead Machine headers use the same master logo.
+              if p.name in {'sales.html'}:
+                  s=s.replace('<div class="logo">Salon <span>Lead Machine</span></div>','<div class="logo"><img alt="STall logo" src="'+logo+'"></div>')
+              # Keep the exact master artwork visually consistent wherever it is displayed.
+              if 'stall-master-logo.webp' in s and 'master-stall-logo-css' not in s:
+                  css='''<style id="master-stall-logo-css">.logo img,.stall-brandbar img,.stall-ds-footer img,.footer-mark img,.footer-brand img{width:180px;height:120px;object-fit:cover;object-position:center;display:block}.logo,.stall-brandbar,.footer-brand{display:flex;align-items:center}.stall-brandbar{min-height:120px}.footer-mark{width:180px;height:120px}.footer-mark img{width:180px;height:120px}@media(max-width:700px){.logo img,.stall-brandbar img,.stall-ds-footer img,.footer-mark img,.footer-brand img{width:150px;height:100px}.stall-brandbar{min-height:100px}}</style>'''
+                  s=s.replace('</head>',css+'</head>',1)
+              p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'STall Automation'
+          git config user.email 'actions@github.com'
+          git add '*.html' stall-master-logo.webp
+          if git diff --cached --quiet; then echo 'No changes'; exit 0; fi
+          git commit -m 'Use approved STall master logo on every page'
+          git pull --rebase origin main
+          git push origin HEAD:main
