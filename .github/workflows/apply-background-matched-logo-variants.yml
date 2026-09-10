@@ -1,4 +1,4 @@
-name: Apply Background Matched STall Logo Variants
+name: Apply STall Same Master Logo
 on:
   push:
     paths:
@@ -10,24 +10,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply light-background logo to non-frozen pages
+      - name: Apply same approved master logo to non-frozen pages
         run: |
           python - <<'PY'
           from pathlib import Path
           targets = ['audit.html','google-reviews.html','whatsapp-ad.html','salon.html','sales.html']
+          old_refs = [
+              'src="stall-premium-top.svg"',
+              'src="stall-approved-logo.webp"',
+          ]
+          new_ref = 'src="stall-exact-approved.svg"'
           for name in targets:
               p = Path(name)
               s = p.read_text(encoding='utf-8')
               old = s
-              s = s.replace('src="stall-approved-logo.webp"', 'src="stall-premium-top.svg"')
+              for ref in old_refs:
+                  s = s.replace(ref, new_ref)
               if s == old:
-                  raise SystemExit(f'Expected logo reference not found in {name}')
+                  raise SystemExit(f'No logo reference found to replace in {name}')
               p.write_text(s, encoding='utf-8')
           PY
-      - name: Commit logo variant changes
+      - name: Commit exact master logo application
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add audit.html google-reviews.html whatsapp-ad.html salon.html sales.html
-          git commit -m "Use background-matched STall logo variants"
+          git commit -m "Use same approved STall master logo on pages"
           git push
