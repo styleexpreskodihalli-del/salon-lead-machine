@@ -1,0 +1,51 @@
+name: Fix STall Logos On Other Pages
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-white-background-logos-on-other-pages.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch non-frozen pages
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          targets = [
+              'audit.html',
+              'google-reviews.html',
+              'whatsapp-ad.html',
+              'salon.html',
+              'sales.html',
+          ]
+
+          old_css = '.logo img,.stall-brandbar img,.stall-ds-footer img,.footer-mark img,.footer-brand img{width:180px;height:120px;object-fit:cover;object-position:center;display:block}'
+          new_css = '.logo img,.stall-brandbar img,.stall-ds-footer img,.footer-mark img,.footer-brand img{width:180px;height:60px;object-fit:contain;object-position:center;display:block}'
+          old_mobile = '.logo img,.stall-brandbar img,.stall-ds-footer img,.footer-mark img,.footer-brand img{width:150px;height:100px}'
+          new_mobile = '.logo img,.stall-brandbar img,.stall-ds-footer img,.footer-mark img,.footer-brand img{width:150px;height:50px}'
+
+          for name in targets:
+              p = Path(name)
+              s = p.read_text(encoding='utf-8')
+              before = s
+              s = s.replace('src="stall-master-logo.webp"', 'src="stall-approved-logo.webp"')
+              s = s.replace(old_css, new_css)
+              s = s.replace(old_mobile, new_mobile)
+              s = s.replace('.stall-brandbar{min-height:120px}', '.stall-brandbar{min-height:70px}')
+              s = s.replace('.footer-mark{width:180px;height:120px}', '.footer-mark{width:180px;height:60px}')
+              s = s.replace('.footer-mark img{width:180px;height:120px}', '.footer-mark img{width:180px;height:60px}')
+              if s == before:
+                  raise SystemExit(f'No expected logo pattern changed in {name}')
+              p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add audit.html google-reviews.html whatsapp-ad.html salon.html sales.html
+          git commit -m "Fix STall logo for white-background pages"
+          git push
