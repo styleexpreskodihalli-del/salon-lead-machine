@@ -1,0 +1,33 @@
+name: Apply Background Matched STall Logo Variants
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-background-matched-logo-variants.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply light-background logo to non-frozen pages
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          targets = ['audit.html','google-reviews.html','whatsapp-ad.html','salon.html','sales.html']
+          for name in targets:
+              p = Path(name)
+              s = p.read_text(encoding='utf-8')
+              old = s
+              s = s.replace('src="stall-approved-logo.webp"', 'src="stall-premium-top.svg"')
+              if s == old:
+                  raise SystemExit(f'Expected logo reference not found in {name}')
+              p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit logo variant changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add audit.html google-reviews.html whatsapp-ad.html salon.html sales.html
+          git commit -m "Use background-matched STall logo variants"
+          git push
