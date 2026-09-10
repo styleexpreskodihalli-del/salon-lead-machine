@@ -1,0 +1,44 @@
+name: Embed Improved STall Logo
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/embed-improved-stall-logo.yml'
+permissions:
+  contents: write
+jobs:
+  embed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Replace Digital Score logos
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          LOGO='stall-approved-logo-v2.webp'
+          pages=['whatsapp-score.html','audit.html','google-reviews.html','whatsapp-ad.html','whatsapp-lead.html','get-started.html','salon.html','sales.html']
+          changed=[]
+          for name in pages:
+              p=Path(name)
+              if not p.exists(): continue
+              s=p.read_text(encoding='utf-8'); original=s
+              s=s.replace('stall-approved-logo.webp',LOGO)
+              if name=='whatsapp-score.html':
+                  s=re.sub(r'src="data:image/webp;base64,[A-Za-z0-9+/=]+"','src="'+LOGO+'"',s)
+                  s=re.sub(r"src='data:image/webp;base64,[A-Za-z0-9+/=]+'","src='"+LOGO+"'",s)
+              if s!=original:
+                  p.write_text(s,encoding='utf-8'); changed.append(name)
+          print('Updated:',', '.join(changed) if changed else 'none')
+          PY
+      - name: Commit logo update
+        run: |
+          git config user.name 'STall Automation'
+          git config user.email 'actions@github.com'
+          git add '*.html'
+          if git diff --cached --quiet; then echo 'No logo changes needed'; exit 0; fi
+          git commit -m 'Embed improved STall logo across Digital Score pages'
+          git pull --rebase origin main
+          git push origin HEAD:main
