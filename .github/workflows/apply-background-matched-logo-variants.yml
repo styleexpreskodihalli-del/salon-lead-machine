@@ -1,12 +1,12 @@
 name: Apply STall Approved Light Logo
 on:
-  push:
-    paths:
-      - '.github/workflows/apply-background-matched-logo-variants.yml'
+  issues:
+    types: [opened]
 permissions:
   contents: write
 jobs:
   patch:
+    if: github.event.issue.title == 'RUN STall approved logo patch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
