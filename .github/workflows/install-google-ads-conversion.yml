@@ -1,9 +1,6 @@
 name: Add Google Ads conversion event
 
-on:
-  push:
-    paths:
-      - '.github/workflows/install-google-ads-conversion.yml'
+on: push
 
 permissions:
   contents: write
@@ -20,24 +17,21 @@ jobs:
           p = Path('whatsapp-score.html')
           s = p.read_text(encoding='utf-8')
           tag = "AW-18444075747/9HxaCIOQ6fMcEOOF6dpE"
-          snippet = "gtag('event', 'conversion', { 'send_to': 'AW-18444075747/9HxaCIOQ6fMcEOOF6dpE' });\n"
+          snippet = "gtag('event', 'conversion', { 'send_to': 'AW-18444075747/9HxaCIOQ6fMcEOOF6dpE' });"
           if tag in s:
               print('Conversion event already present')
           else:
               markers = [
-                  'render(d);',
-                  "$('status').textContent='✓ Correct nearby Google profile fetched and scored.';",
-                  'render(data);'
+                  'autoSendAuditToWhatsApp(d)',
+                  'render(d);$('status').textContent=',
+                  'render(d);'
               ]
               marker = next((m for m in markers if m in s), None)
               if not marker:
-                  print('Available render/status markers:')
-                  for token in ['render(', 'Correct nearby', 'scored', 'WhatsApp']:
-                      print(token, s.find(token))
                   raise SystemExit('Conversion insertion marker not found')
-              s = s.replace(marker, marker + snippet, 1)
+              s = s.replace(marker, snippet + marker, 1)
               p.write_text(s, encoding='utf-8')
-              print('Inserted conversion event after:', marker)
+              print('Inserted conversion event before:', marker)
           PY
       - name: Commit conversion event
         run: |
