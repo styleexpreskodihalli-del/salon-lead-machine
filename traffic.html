@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Free Salon Digital Audit for Indian salon owners.">
+<title>Free Salon Digital Audit | Salon Lead Machine</title>
+<style>
+:root{--g:#075e54;--g2:#128c7e;--ink:#152019;--muted:#68756d;--bg:#f4f8f5;--card:#fff;--line:#dfe8e1;--gold:#d5a64a}*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--ink);background:var(--bg)}.wrap{max-width:1040px;margin:auto;padding:18px 18px 60px}.top{display:flex;justify-content:space-between;align-items:center;padding:8px 0 18px}.logo img{width:180px;height:60px;object-fit:contain;display:block}.pill{display:inline-flex;background:#dff3ed;color:var(--g);font-size:12px;font-weight:900;padding:7px 10px;border-radius:999px}.hero{background:linear-gradient(135deg,#064d45,#128c7e);color:#fff;border-radius:28px;padding:42px 36px;display:grid;grid-template-columns:1.1fr .9fr;gap:30px;box-shadow:0 16px 45px rgba(7,94,84,.18)}h1{font-size:clamp(38px,6vw,64px);line-height:.96;margin:15px 0}.hero p{font-size:18px;line-height:1.6;color:#e2f4f0}.ticks{display:grid;gap:10px;margin:22px 0}.tick{font-weight:800}.form{background:#fff;color:var(--ink);border-radius:22px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.10)}.form h2{margin:0 0 6px}.sub{font-size:13px;color:var(--muted);line-height:1.5}.field{margin:12px 0}.field label{display:block;font-size:12px;font-weight:900;color:var(--muted);margin-bottom:6px}.field input,.field select{width:100%;padding:13px;border:1px solid var(--line);border-radius:11px;font:inherit}.cta{width:100%;border:0;border-radius:12px;background:var(--g2);color:#fff;padding:14px 16px;font-weight:900;font-size:16px;cursor:pointer}.fine{font-size:11px;color:var(--muted);line-height:1.5}.section{margin-top:22px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:20px}.card b{display:block;font-size:17px;margin-bottom:6px}.card span{font-size:13px;color:var(--muted);line-height:1.5}.success,.error{display:none;padding:12px;border-radius:11px;margin-top:10px;font-size:13px;font-weight:800}.success{background:#e5f7ee;color:#075e54}.error{background:#fff0f0;color:#9b1c1c}.success.show,.error.show{display:block}.proof{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}@media(max-width:780px){.hero{grid-template-columns:1fr;padding:26px 20px}.cards{grid-template-columns:1fr}.top{padding-bottom:14px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><div class="logo"><img alt="STall logo" src="stall-approved-light.svg"></div><div class="pill">FREE SALON DIGITAL AUDIT</div></header>
+<section class="hero">
+<div><div class="pill">For Salon Owners</div><h1>Are you losing salon enquiries before they become bookings?</h1><p>Get a free digital health check of your salon's online presence and see the biggest opportunities to get found, trusted and contacted.</p><div class="ticks"><div class="tick">✓ Google visibility check</div><div class="tick">✓ Online presence review</div><div class="tick">✓ Booking & enquiry opportunities</div><div class="tick">✓ Practical next steps</div></div></div>
+<div class="form"><h2>Get your FREE audit</h2><p class="sub">Takes less than 60 seconds. We'll continue the conversation on WhatsApp.</p>
+<form id="leadForm">
+<div class="field"><label>Salon name *</label><input id="salon" required placeholder="e.g. Style Studio"></div>
+<div class="field"><label>Your name *</label><input id="owner" required placeholder="Owner name"></div>
+<div class="field"><label>WhatsApp number *</label><input id="phone" required inputmode="tel" placeholder="10-digit mobile number"></div>
+<div class="field"><label>City *</label><input id="city" required placeholder="e.g. Bangalore"></div>
+<div class="field"><label>Main goal</label><select id="interest"><option>Get more salon enquiries</option><option>Improve Google visibility</option><option>Improve website / online presence</option><option>Automate salon marketing</option><option>Not sure — recommend for me</option></select></div>
+<button class="cta" type="submit">💬 Get My Free Audit →</button>
+<div id="success" class="success">You're in. Opening WhatsApp…</div><div id="error" class="error"></div>
+<p class="fine">No spam. Your details are used only to respond to your salon enquiry.</p>
+</form></div>
+</section>
+<section class="section"><div class="cards"><div class="card"><b>Find your gaps</b><span>See what may be stopping nearby customers from discovering or contacting your salon.</span></div><div class="card"><b>Know what to fix first</b><span>Get practical actions instead of generic marketing advice.</span></div><div class="card"><b>Talk on WhatsApp</b><span>Start with a short conversation and a 5-minute walkthrough.</span></div></div></section>
+<div class="proof">Salon Lead Machine · Built for Indian salon owners</div>
+</div>
+<script>
+const p=new URLSearchParams(location.search);const source=p.get('utm_source')||'traffic';const medium=p.get('utm_medium')||'paid_social';const campaign=p.get('utm_campaign')||'salon_digital_audit_sep_2026';const landing=location.href.split('#')[0];
+const clean=v=>String(v||'').trim();
+document.getElementById('leadForm').addEventListener('submit',async e=>{e.preventDefault();const salon=clean(document.getElementById('salon').value),owner=clean(document.getElementById('owner').value),phone=clean(document.getElementById('phone').value).replace(/\D/g,''),city=clean(document.getElementById('city').value),interest=clean(document.getElementById('interest').value);if(phone.length<10){const er=document.getElementById('error');er.textContent='Please enter a valid 10-digit WhatsApp number.';er.classList.add('show');return}document.getElementById('error').classList.remove('show');const payload={salon_name:salon,owner_name:owner,phone,city,source,landing_page:landing,campaign,utm_source:source,utm_medium:medium,utm_campaign:campaign,message:interest};try{await fetch('https://dhiimviybpbggvuuzwfh.supabase.co/functions/v1/sales-lead-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true}).catch(()=>null)}finally{const msg=`Hi, I'm a salon owner and I want my FREE Salon Digital Audit.\n\nSalon: ${salon}\nOwner: ${owner}\nWhatsApp: ${phone}\nCity: ${city}\nHelp needed: ${interest}\n\nSource: ${source}\nCampaign: ${campaign}`;document.getElementById('success').classList.add('show');setTimeout(()=>location.href='https://wa.me/918197018680?text='+encodeURIComponent(msg),250)}});
+</script>
+</body></html>
