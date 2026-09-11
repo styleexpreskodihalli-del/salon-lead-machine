@@ -16,22 +16,17 @@ jobs:
           from pathlib import Path
           p = Path('whatsapp-score.html')
           s = p.read_text(encoding='utf-8')
-          tag = "AW-18444075747/9HxaCIOQ6fMcEOOF6dpE"
+          tag = 'AW-18444075747/9HxaCIOQ6fMcEOOF6dpE'
           snippet = "gtag('event', 'conversion', { 'send_to': 'AW-18444075747/9HxaCIOQ6fMcEOOF6dpE' });"
           if tag in s:
               print('Conversion event already present')
           else:
-              markers = [
-                  'autoSendAuditToWhatsApp(d)',
-                  'render(d);$('status').textContent=',
-                  'render(d);'
-              ]
-              marker = next((m for m in markers if m in s), None)
-              if not marker:
-                  raise SystemExit('Conversion insertion marker not found')
+              marker = 'autoSendAuditToWhatsApp(d)'
+              if marker not in s:
+                  raise SystemExit('Successful-score marker not found')
               s = s.replace(marker, snippet + marker, 1)
               p.write_text(s, encoding='utf-8')
-              print('Inserted conversion event before:', marker)
+              print('Inserted conversion event before WhatsApp redirect')
           PY
       - name: Commit conversion event
         run: |
