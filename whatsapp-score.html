@@ -140,8 +140,22 @@ body{background:#f7f8fb}
   return true;
 }
 
-function render(d){data=d;const b=d.place,a=d.audit,g=grade(a.score);$('name').textContent=b.name||'Salon';$('address').textContent=b.address||'';$('facts').textContent=`★ ${b.rating?b.rating.toFixed(1):'N/A'} · ${Number(b.reviews||0).toLocaleString()} reviews · ${b.website?'Website detected':'No website detected'}`;$('score').textContent=a.score;$('circle').style.setProperty('--s',a.score);$('grade').textContent=g[0];$('summary').textContent=g[1];$('gap').textContent=a.gap;$('bars').innerHTML=a.categories.map(c=>`<div class="barrow"><span>${c.name}</span><div class="bar"><i style="width:${Math.round(c.score/c.max*100)}%"></i></div><b>${Math.round(c.score/c.max*100)}%</b></div>`).join('');$('result').classList.remove('hidden');$('result').scrollIntoView({behavior:'smooth',block:'start'})}async function run(v){if(!v||v.length<8)return;$('error').classList.add('hidden');$('result').classList.add('hidden');$('status').textContent='📍 Getting your current location, then finding the matching Google listing nearby…';$('check').disabled=true;try{await getLocation();$('status').textContent='🔎 Searching Google around your current location…';const d=await lookup(v);render(d);gtag('event', 'conversion', { 'send_to': 'AW-18444075747/9HxaCIOQ6fMcEOOF6dpE' });
-$('status').textContent='✓ Correct nearby Google profile fetched and scored.';autoSendAuditToWhatsApp(d)}catch(e){$('status').textContent='';$('error').textContent=e.message;$('error').classList.remove('hidden')}finally{$('check').disabled=false}}const auditParams=new URLSearchParams(location.search);
+function render(d){data=d;const b=d.place,a=d.audit,g=grade(a.score);$('name').textContent=b.name||'Salon';$('address').textContent=b.address||'';$('facts').textContent=`★ ${b.rating?b.rating.toFixed(1):'N/A'} · ${Number(b.reviews||0).toLocaleString()} reviews · ${b.website?'Website detected':'No website detected'}`;$('score').textContent=a.score;$('circle').style.setProperty('--s',a.score);$('grade').textContent=g[0];$('summary').textContent=g[1];$('gap').textContent=a.gap;$('bars').innerHTML=a.categories.map(c=>`<div class="barrow"><span>${c.name}</span><div class="bar"><i style="width:${Math.round(c.score/c.max*100)}%"></i></div><b>${Math.round(c.score/c.max*100)}%</b></div>`).join('');$('result').classList.remove('hidden');$('result').scrollIntoView({behavior:'smooth',block:'start'})}function trackDigitalScoreConversion(onComplete){
+  let done=false;
+  const finish=()=>{if(done)return;done=true;onComplete()};
+  if(typeof gtag!=='function'){finish();return}
+  try{
+    gtag('event','conversion',{
+      'send_to':'AW-18444075747/9HxaCIOQ6fMcEOOF6dpE',
+      'transport_type':'beacon',
+      'event_callback':finish,
+      'event_timeout':2000
+    });
+    setTimeout(finish,2200);
+  }catch(e){finish()}
+}
+async function run(v){if(!v||v.length<8)return;$('error').classList.add('hidden');$('result').classList.add('hidden');$('status').textContent='📍 Getting your current location, then finding the matching Google listing nearby…';$('check').disabled=true;try{await getLocation();$('status').textContent='🔎 Searching Google around your current location…';const d=await lookup(v);render(d);trackDigitalScoreConversion(()=>{
+$('status').textContent='✓ Correct nearby Google profile fetched and scored.';autoSendAuditToWhatsApp(d)})}catch(e){$('status').textContent='';$('error').textContent=e.message;$('error').classList.remove('hidden')}finally{$('check').disabled=false}}const auditParams=new URLSearchParams(location.search);
 const prospectPhone=(auditParams.get('phone')||auditParams.get('whatsapp')||'').replace(/\D/g,'');
 if(prospectPhone.length>=10){
   const ph=$('phone');
