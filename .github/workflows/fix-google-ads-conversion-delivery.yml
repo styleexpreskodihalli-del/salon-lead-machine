@@ -17,22 +17,36 @@ jobs:
           from pathlib import Path
           p = Path('whatsapp-score.html')
           s = p.read_text(encoding='utf-8')
-
-          old = """function render(d){data=d;const b=d.place,a=d.audit,g=grade(a.score);$('name').textContent=b.name||'Salon';$('address').textContent=b.address||'';$('facts').textContent=`★ ${b.rating?b.rating.toFixed(1):'N/A'} · ${Number(b.reviews||0).toLocaleString()} reviews · ${b.website?'Website detected':'No website detected'}`;$('score').textContent=a.score;$('circle').style.setProperty('--s',a.score);$('grade').textContent=g[0];$('summary').textContent=g[1];$('gap').textContent=a.gap;$('bars').innerHTML=a.categories.map(c=>`<div class=\\\"barrow\\\"><span>${c.name}</span><div class=\\\"bar\\\"><i style=\\\"width:${Math.round(c.score/c.max*100)}%\\\"></i></div><b>${Math.round(c.score/c.max*100)}%</b></div>`).join('');$('result').classList.remove('hidden');$('result').scrollIntoView({behavior:'smooth',block:'start'})}async function run(v){"""
-          new = """function render(d){data=d;const b=d.place,a=d.audit,g=grade(a.score);$('name').textContent=b.name||'Salon';$('address').textContent=b.address||'';$('facts').textContent=`★ ${b.rating?b.rating.toFixed(1):'N/A'} · ${Number(b.reviews||0).toLocaleString()} reviews · ${b.website?'Website detected':'No website detected'}`;$('score').textContent=a.score;$('circle').style.setProperty('--s',a.score);$('grade').textContent=g[0];$('summary').textContent=g[1];$('gap').textContent=a.gap;$('bars').innerHTML=a.categories.map(c=>`<div class=\\\"barrow\\\"><span>${c.name}</span><div class=\\\"bar\\\"><i style=\\\"width:${Math.round(c.score/c.max*100)}%\\\"></i></div><b>${Math.round(c.score/c.max*100)}%</b></div>`).join('');$('result').classList.remove('hidden');$('result').scrollIntoView({behavior:'smooth',block:'start'})}
-function trackDigitalScoreConversion(onComplete){let done=false;const finish=()=>{if(done)return;done=true;onComplete()};if(typeof gtag!=='function'){finish();return}try{gtag('event','conversion',{'send_to':'AW-18444075747/9HxaCIOQ6fMcEOOF6dpE','transport_type':'beacon','event_callback':finish,'event_timeout':2000});setTimeout(finish,2200)}catch(e){finish()}}
-async function run(v){"""
+          marker = "async function run(v){"
+          helper = """function trackDigitalScoreConversion(onComplete){
+            let done=false;
+            const finish=()=>{if(done)return;done=true;onComplete()};
+            if(typeof gtag!=='function'){finish();return}
+            try{
+              gtag('event','conversion',{
+                'send_to':'AW-18444075747/9HxaCIOQ6fMcEOOF6dpE',
+                'transport_type':'beacon',
+                'event_callback':finish,
+                'event_timeout':2000
+              });
+              setTimeout(finish,2200);
+            }catch(e){finish()}
+          }
+          """
+          if 'function trackDigitalScoreConversion' not in s:
+              if marker not in s:
+                  raise SystemExit('run marker not found')
+              s=s.replace(marker,helper+marker,1)
+          old="gtag('event', 'conversion', { 'send_to': 'AW-18444075747/9HxaCIOQ6fMcEOOF6dpE' });"
           if old not in s:
-              raise SystemExit('render/run anchor not found')
-          s = s.replace(old, new, 1)
-
-          old2 = """render(d);gtag('event', 'conversion', { 'send_to': 'AW-18444075747/9HxaCIOQ6fMcEOOF6dpE' });\n$('status').textContent='✓ Correct nearby Google profile fetched and scored.';autoSendAuditToWhatsApp(d)"""
-          new2 = """render(d);trackDigitalScoreConversion(()=>{\n$('status').textContent='✓ Correct nearby Google profile fetched and scored.';autoSendAuditToWhatsApp(d)\n})"""
-          if old2 not in s:
-              raise SystemExit('conversion call anchor not found')
-          s = s.replace(old2, new2, 1)
-          p.write_text(s, encoding='utf-8')
-          print('Patched conversion event with callback/beacon and redirect fallback')
+              raise SystemExit('conversion call not found')
+          s=s.replace(old,"trackDigitalScoreConversion(()=>{",1)
+          old_tail="$('status').textContent='✓ Correct nearby Google profile fetched and scored.';autoSendAuditToWhatsApp(d)"
+          if old_tail not in s:
+              raise SystemExit('success tail not found')
+          s=s.replace(old_tail,"$('status').textContent='✓ Correct nearby Google profile fetched and scored.';autoSendAuditToWhatsApp(d)})",1)
+          p.write_text(s,encoding='utf-8')
+          print('Patched conversion callback and delayed redirect')
           PY
       - name: Commit patch
         run: |
@@ -42,5 +56,3 @@ async function run(v){"""
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'Fix Google Ads conversion delivery before redirect'
           git push
-
-# trigger
