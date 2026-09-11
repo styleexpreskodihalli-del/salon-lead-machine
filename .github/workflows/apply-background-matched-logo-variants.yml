@@ -1,4 +1,4 @@
-name: Apply STall Same Master Logo
+name: Apply STall Approved Light Logo
 on:
   push:
     paths:
@@ -10,30 +10,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply same approved master logo to non-frozen pages
+      - name: Apply approved light logo to non-frozen pages
         run: |
           python - <<'PY'
           from pathlib import Path
           targets = ['audit.html','google-reviews.html','whatsapp-ad.html','salon.html','sales.html']
-          old_refs = [
-              'src="stall-premium-top.svg"',
-              'src="stall-approved-logo.webp"',
-          ]
-          new_ref = 'src="stall-exact-approved.svg"'
+          new_ref = 'src="stall-approved-light.svg"'
           for name in targets:
               p = Path(name)
               s = p.read_text(encoding='utf-8')
               old = s
-              for ref in old_refs:
-                  s = s.replace(ref, new_ref)
-              if s == old:
-                  raise SystemExit(f'No logo reference found to replace in {name}')
-              p.write_text(s, encoding='utf-8')
+              s = s.replace('src="stall-exact-approved.svg"', new_ref)
+              s = s.replace('src="stall-approved-logo.webp"', new_ref)
+              s = s.replace('src="stall-premium-top.svg"', new_ref)
+              if s != old:
+                  p.write_text(s, encoding='utf-8')
           PY
-      - name: Commit exact master logo application
+      - name: Commit approved light logo application
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add audit.html google-reviews.html whatsapp-ad.html salon.html sales.html
-          git commit -m "Use same approved STall master logo on pages"
+          git diff --cached --quiet || git commit -m "Apply approved STall light logo to pages"
           git push
