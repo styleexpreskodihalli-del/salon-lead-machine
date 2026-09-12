@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/google-lead.js": {
+      "maxDuration": 10
+    }
+  }
+}
