@@ -1,0 +1,41 @@
+name: Repair Personalized Audit Script
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/repair-personalized-audit.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair malformed literal-newline script block
+        run: |
+          python3 - <<'PY2'
+          from pathlib import Path
+          p=Path("whatsapp-score.html")
+          s=p.read_text(encoding="utf-8")
+          marker=r"\n<script>\n(function(){\n  const p=new URLSearchParams(location.search);"
+          if marker not in s:
+              raise SystemExit("Expected malformed personalized script marker not found")
+          start=s.index(marker)
+          end=s.index(r"\n</script>\n</body></html>", start)
+          block=s[start:end+len(r"\n</script>")]
+          block=block.replace(r"\n", "\n")
+          s=s[:start]+block+s[end+len(r"\n</script>"):]
+          p.write_text(s,encoding="utf-8")
+          print("Repaired personalized script block.")
+          PY2
+      - name: Remove temporary repair workflows and commit
+        run: |
+          rm -f .github/workflows/repair-personalized-audit.yml .github/workflows/personalize-audit-page.yml
+          git config user.name 'STall Automation'
+          git config user.email 'actions@github.com'
+          git add whatsapp-score.html .github/workflows/repair-personalized-audit.yml .github/workflows/personalize-audit-page.yml
+          git commit -m 'Fix personalized audit JavaScript syntax'
+          git push
