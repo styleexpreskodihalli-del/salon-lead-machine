@@ -11,14 +11,15 @@ self.addEventListener('push', event => {
   try { data = event.data ? event.data.json() : {}; } catch (_) {}
 
   const title = data.title || '🔔 STall — New Qualified Lead';
+  const icon = new URL('stall-logo.webp', self.registration.scope).href;
   const options = {
     body: data.body || 'A new qualified salon lead is ready.',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon,
+    badge: icon,
     tag: 'stall-qualified-lead',
     renotify: true,
     data: {
-      url: data.url || '/acquisition-command-center.html',
+      url: data.url || new URL('acquisition-command-center.html', self.registration.scope).href,
       phone: data.phone || ''
     }
   };
@@ -33,7 +34,7 @@ self.addEventListener('notificationclick', event => {
   const phone = String(d.phone || '').replace(/\D/g, '');
   const target = phone
     ? `https://wa.me/${phone}`
-    : (d.url || '/acquisition-command-center.html');
+    : (d.url || new URL('acquisition-command-center.html', self.registration.scope).href);
 
   event.waitUntil((async () => {
     // A lead notification with a phone number should always open WhatsApp directly.
