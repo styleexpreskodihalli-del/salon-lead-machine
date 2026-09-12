@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>STall Acquisition Command Center</title>
+<meta name="description" content="STall acquisition source-of-truth dashboard for salon lead generation.">
+<style>
+:root{--bg:#07110d;--card:#0d1c16;--line:#1d3a2c;--text:#f4fff8;--muted:#9db5a8;--accent:#72e6a6;--accent2:#b8ffd3;--danger:#ff8d8d}*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#07110d,#0a1711 55%,#06100c);color:var(--text);font:15px Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}a{color:var(--accent2);text-decoration:none}.wrap{max-width:1250px;margin:auto;padding:28px 18px 60px}.top{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:24px}.brand{font-size:25px;font-weight:800}.brand span{color:var(--accent)}.sub{color:var(--muted);margin-top:5px}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:#10251b;color:var(--text);padding:10px 13px;border-radius:10px;cursor:pointer}.btn:hover{border-color:var(--accent)}.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.card{background:rgba(13,28,22,.9);border:1px solid var(--line);border-radius:16px;padding:17px;box-shadow:0 8px 30px #0004}.kpi .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.kpi .num{font-size:30px;font-weight:800;margin-top:7px}.target{margin:18px 0}.targetline{display:flex;justify-content:space-between;color:var(--muted);margin-bottom:9px}.bar{height:12px;background:#13271e;border-radius:20px;overflow:hidden}.fill{height:100%;width:0;background:var(--accent);transition:.4s}.section{margin-top:18px}.section h2{font-size:18px;margin:0 0 11px}.funnel{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.stage{padding:13px 10px;border:1px solid var(--line);border-radius:12px;text-align:center}.stage b{display:block;font-size:22px}.stage span{display:block;color:var(--muted);font-size:11px;margin-top:3px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.metric b{font-size:22px}.metric span{display:block;color:var(--muted);font-size:12px;margin-top:3px}.tablewrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{text-align:left;padding:11px;border-bottom:1px solid #173126;white-space:nowrap}.table th{font-size:11px;color:var(--muted);text-transform:uppercase}.pill{padding:5px 8px;border-radius:999px;background:#13291f;color:var(--accent2);font-size:11px}.muted{color:var(--muted)}.error{color:var(--danger);margin-top:10px}.links{display:flex;gap:10px;flex-wrap:wrap}.links a{border:1px solid var(--line);padding:10px 12px;border-radius:10px;background:#0c1c15}.foot{margin-top:18px;color:var(--muted);font-size:12px}@media(max-width:900px){.grid{grid-template-columns:repeat(3,1fr)}.funnel{grid-template-columns:repeat(4,1fr)}.metrics{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.top{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:repeat(2,1fr)}.funnel{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+<div><div class="brand"><span>STall</span> Acquisition Command Center</div><div class="sub">One source of truth for the first 10 paid salons.</div></div>
+<div class="actions"><button class="btn" onclick="loadData()">↻ Refresh</button><a class="btn" href="whatsapp-outreach.html">WhatsApp Outreach</a><a class="btn" href="sales-engine.html">Sales Engine</a></div>
+</header>
+<section class="grid">
+<div class="card kpi"><div class="label">Total Prospects</div><div id="total" class="num">—</div></div>
+<div class="card kpi"><div class="label">Contacted</div><div id="contacted" class="num">—</div></div>
+<div class="card kpi"><div class="label">Replied</div><div id="replied" class="num">—</div></div>
+<div class="card kpi"><div class="label">Score Completed</div><div id="score" class="num">—</div></div>
+<div class="card kpi"><div class="label">Demos</div><div id="demo" class="num">—</div></div>
+<div class="card kpi"><div class="label">Paid</div><div id="paid" class="num">—</div></div>
+</section>
+<section class="card target"><div class="targetline"><b>Paid Salon Target</b><span id="targetText">0 / 10</span></div><div class="bar"><div id="targetFill" class="fill"></div></div></section>
+<section class="section"><h2>Acquisition Funnel</h2><div class="funnel" id="funnel"></div></section>
+<section class="section"><h2>Conversion Snapshot</h2><div class="metrics">
+<div class="card metric"><b id="m1">0%</b><span>Contact → Reply</span></div><div class="card metric"><b id="m2">0%</b><span>Reply → Score</span></div><div class="card metric"><b id="m3">0%</b><span>Score → Demo</span></div><div class="card metric"><b id="m4">0%</b><span>Demo → Paid</span></div>
+</div></section>
+<section class="section card"><h2>Recent Pipeline Activity</h2><div id="status" class="muted">Loading live Supabase data…</div><div class="tablewrap"><table class="table"><thead><tr><th>Salon</th><th>City</th><th>Phone</th><th>Stage</th><th>Updated</th></tr></thead><tbody id="rows"></tbody></table></div><div id="error" class="error"></div></section>
+<section class="section card"><h2>Operator Shortcuts</h2><div class="links"><a href="whatsapp-outreach.html">Open Delhi Outreach</a><a href="whatsapp-score.html">Free Digital Score</a><a href="sales.html">Pricing / Payment</a><a href="get-started.html">Get Started</a></div><div class="foot">Read-only dashboard. It reads <code>outreach_prospects</code>; outreach pages remain responsible for creating/updating prospect activity.</div></section>
+</div>
+<script>
+const SUPABASE_URL='https://dhiimviybpbggvuuzwfh.supabase.co';
+const SUPABASE_KEY='sb_publishable_IOXACVkfe217drLmK0UCcA_ADmDLTg7';
+const STAGES=['new','contacted','replied','score_completed','qualified','demo','paid'];
+const labels={new:'New',contacted:'Contacted',replied:'Replied',score_completed:'Score completed',qualified:'Qualified',demo:'Demo',paid:'Paid'};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+function classify(r){let s=String(r.status||r.stage||'new').toLowerCase().replace(/\s+/g,'_'); if(['score_sent'].includes(s))return 'replied'; if(['score_completed','qualified','demo','paid'].includes(s))return s; if(['contacted','message_sent'].includes(s))return 'contacted'; return 'new'}
+async function loadData(){
+ document.getElementById('status').textContent='Loading live Supabase data…';document.getElementById('error').textContent='';
+ try{
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/outreach_prospects?select=*&order=updated_at.desc`,{headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}});
+  if(!res.ok)throw new Error(`Supabase returned ${res.status}`); const data=await res.json(); render(data||[]);
+ }catch(e){document.getElementById('status').textContent='Live data unavailable';document.getElementById('error').textContent=e.message;render([])}
+}
+function render(data){
+ const counts=Object.fromEntries(STAGES.map(s=>[s,0]));data.forEach(r=>{const s=classify(r);if(counts[s]!=null)counts[s]++});
+ document.getElementById('total').textContent=data.length;document.getElementById('contacted').textContent=counts.contacted+counts.replied+counts.score_completed+counts.qualified+counts.demo+counts.paid;document.getElementById('replied').textContent=counts.replied+counts.score_completed+counts.qualified+counts.demo+counts.paid;document.getElementById('score').textContent=counts.score_completed+counts.qualified+counts.demo+counts.paid;document.getElementById('demo').textContent=counts.demo+counts.paid;document.getElementById('paid').textContent=counts.paid;
+ const paid=counts.paid;document.getElementById('targetText').textContent=`${paid} / 10`;document.getElementById('targetFill').style.width=Math.min(100,paid*10)+'%';
+ document.getElementById('funnel').innerHTML=STAGES.map(s=>`<div class="stage"><b>${counts[s]}</b><span>${labels[s]}</span></div>`).join('');
+ const c=counts.contacted+counts.replied+counts.score_completed+counts.qualified+counts.demo+counts.paid,r=counts.replied+counts.score_completed+counts.qualified+counts.demo+counts.paid,sc=counts.score_completed+counts.qualified+counts.demo+counts.paid,d=counts.demo+counts.paid;
+ document.getElementById('m1').textContent=pct(r,c)+'%';document.getElementById('m2').textContent=pct(sc,r)+'%';document.getElementById('m3').textContent=pct(d,sc)+'%';document.getElementById('m4').textContent=pct(paid,d)+'%';
+ document.getElementById('rows').innerHTML=data.slice(0,30).map(x=>`<tr><td>${esc(x.salon_name||x.name||'—')}</td><td>${esc(x.city||'—')}</td><td>${esc(x.phone||'—')}</td><td><span class="pill">${esc(labels[classify(x)]||classify(x))}</span></td><td>${esc(x.updated_at?new Date(x.updated_at).toLocaleString():'—')}</td></tr>`).join('');document.getElementById('status').textContent=`Live records: ${data.length} · Last refresh: ${new Date().toLocaleTimeString()}`;
+}
+loadData();
+</script>
+</body>
+</html>
