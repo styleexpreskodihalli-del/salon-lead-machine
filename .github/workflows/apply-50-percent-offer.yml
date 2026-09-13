@@ -1,0 +1,51 @@
+name: Apply 50 Percent Salon Offer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-50-percent-offer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-offer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Apply 50 percent offer to salon pricing page
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('whatsapp-score.html')
+          s = p.read_text(encoding='utf-8')
+
+          replacements = {
+            'See exactly what each package includes and buy directly using our secure Razorpay checkout.': '🔥 50% OFF — LIMITED TIME · Special offer valid for the next 30 days. See exactly what each package includes and buy directly using our secure Razorpay checkout.',
+            '<h3>Salon Starter</h3><div class="price">₹4,999</div>': '<h3>Salon Starter</h3><div class="price">₹2,499</div><div style="font-size:11px;color:#667085;text-decoration:line-through">₹4,999</div><div style="font-size:10px;font-weight:950;color:#ed0a78;margin-top:4px">50% OFF · 30 DAYS</div>',
+            '<span class="popular">MOST POPULAR</span><h3>Salon Lead Machine</h3><div class="price">₹9,999</div>': '<span class="popular">MOST POPULAR · 50% OFF</span><h3>Salon Lead Machine</h3><div class="price">₹4,999</div><div style="font-size:11px;color:#667085;text-decoration:line-through">₹9,999</div><div style="font-size:10px;font-weight:950;color:#ed0a78;margin-top:4px">50% OFF · 30 DAYS</div>',
+            '<h3>Salon Growth Automation</h3><div class="price">₹14,999</div>': '<h3>Salon Growth Automation</h3><div class="price">₹7,499</div><div style="font-size:11px;color:#667085;text-decoration:line-through">₹14,999</div><div style="font-size:10px;font-weight:950;color:#ed0a78;margin-top:4px">50% OFF · 30 DAYS</div>'
+          }
+
+          for old, new in replacements.items():
+              if old not in s:
+                  raise SystemExit(f'Missing expected pricing text: {old}')
+              s = s.replace(old, new, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit pricing offer
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add whatsapp-score.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Add 50% salon package offer for 30 days"
+          git push origin main
