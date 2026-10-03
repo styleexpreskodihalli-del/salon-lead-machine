@@ -116,7 +116,7 @@ function reportText(){if(!data)return '';const b=data.place,a=data.audit;return 
 $('check').addEventListener('click',()=>run(clean($('profile').value)));
 $('profile').addEventListener('paste',()=>setTimeout(()=>{const v=clean($('profile').value);if(v.length>=8)run(v)},150));
 $('ownerPhone').addEventListener('input',()=>{$('sendPhone').value=$('ownerPhone').value});
-$('sendOwner').addEventListener('click',()=>{if(!data)return;const p=clean($('sendPhone').value).replace(/\D/g,'');if(p.length<10){$('error').textContent='Please enter a valid owner WhatsApp number.';$('error').classList.remove('hidden');return}window.open('https://wa.me/'+p+'?text='+encodeURIComponent(reportText()),'_blank')});
+function normalizeWhatsAppNumber(value){let p=clean(value).replace(/\\D/g,'');if(p.startsWith('00'))p=p.slice(2);if(p.startsWith('0'))p=p.replace(/^0+/,'');if(p.length===10)p='91'+p;return p} $('sendOwner').addEventListener('click',()=>{if(!data)return;const p=normalizeWhatsAppNumber($('sendPhone').value);if(p.length<12){$('error').textContent='Please enter a valid WhatsApp number with country code.';$('error').classList.remove('hidden');return}const url='https://wa.me/'+p+'?text='+encodeURIComponent(reportText());window.open(url,'_blank','noopener,noreferrer')});
 $('copyReport').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(reportText());$('copyReport').textContent='✓ Copied';setTimeout(()=>$('copyReport').textContent='Copy Score Summary',1600)}catch(e){$('error').textContent='Copy failed. Please select and copy the report manually.';$('error').classList.remove('hidden')}});
 </script>
 </body></html>
