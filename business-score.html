@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Free STall Business Digital Score for local stores and businesses.">
+<title>Free Business Digital Score | STall</title>
+<style>
+:root{--ink:#101525;--pink:#ed0a78;--pink2:#ff2c91;--gold:#d9ad52;--dark:#101114;--muted:#667085;--line:#e7e8ee;--bg:#f7f8fb}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--ink);background:var(--bg)}
+.wrap{max-width:1280px;margin:auto}.top{position:absolute;top:0;left:0;right:0;z-index:20;padding:14px 5%;display:grid;grid-template-columns:190px 1fr 180px;align-items:center;gap:20px}.brand img{width:150px;height:100px;object-fit:contain}.nav{display:flex;justify-content:center;gap:28px}.nav a{color:#fff;text-decoration:none;font-size:12px;font-weight:800}.cta{justify-self:end;background:linear-gradient(135deg,var(--pink),var(--pink2));color:#fff;text-decoration:none;padding:14px 22px;border-radius:13px;font-weight:900}
+.hero{min-height:700px;padding:135px 6% 100px;background:#090a0d;color:#fff;position:relative;overflow:hidden}.hero:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#050609 0%,rgba(5,6,9,.94) 38%,rgba(5,6,9,.45) 68%,rgba(5,6,9,.08)),radial-gradient(circle at 80% 50%,rgba(217,173,82,.18),transparent 28%)}.hero-copy{position:relative;z-index:2;max-width:780px}.kicker{font-size:12px;letter-spacing:.25em;font-weight:900;color:#fff}.kicker b{color:var(--gold);padding:0 7px}.hero h1{font-size:clamp(55px,7vw,92px);line-height:.88;letter-spacing:-.055em;margin:18px 0}.hero h1 span{color:var(--pink)}.hero p{font-size:20px;line-height:1.5;color:#ececf0;max-width:680px}.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:28px;max-width:800px}.chip{padding:16px 10px;text-align:center;border:1px solid rgba(255,255,255,.16);border-radius:17px;background:rgba(0,0,0,.48);font-weight:800;font-size:12px}.chip b{display:block;font-size:28px;margin-bottom:5px}.signature{margin-top:28px;color:#f2c55d;font-size:23px;font-style:italic}
+.score-card{background:#fff;border:1px solid var(--line);border-radius:28px;padding:34px;box-shadow:0 24px 65px rgba(15,18,30,.14);max-width:1120px;margin:-42px auto 0;position:relative;z-index:5}.score-card h2{text-align:center;font-size:32px;margin:0 0 7px}.score-card>p{text-align:center;color:var(--muted);max-width:760px;margin:0 auto 22px}.input{display:grid;grid-template-columns:1fr 210px;gap:10px}input,select{width:100%;padding:16px 17px;border:1px solid #cfd2dc;border-radius:13px;font:inherit;font-size:15px;outline:none;background:#fff}input:focus,select:focus{border-color:var(--pink);box-shadow:0 0 0 4px rgba(237,10,120,.08)}button{border:0;border-radius:13px;background:var(--pink);color:#fff;padding:15px 20px;font-weight:950;cursor:pointer;box-shadow:0 10px 22px rgba(237,10,120,.2)}button:hover{background:var(--pink2)}button:disabled{opacity:.6;cursor:wait}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.status{text-align:center;color:var(--muted);font-size:12px;margin-top:12px}.error{background:#fff0f0;color:#9b1c1c;padding:12px;border-radius:10px;margin-top:12px}.hidden{display:none}
+.benefits{max-width:1120px;margin:18px auto 0;background:linear-gradient(90deg,#fff3f8,#fff);border:1px solid #f1dce6;border-radius:22px;padding:24px;display:grid;grid-template-columns:repeat(4,1fr);text-align:center}.benefit{padding:5px 14px;border-right:1px solid #e8dfe4}.benefit:last-child{border:0}.big{font-size:28px;color:var(--pink);font-weight:950}.benefit strong{display:block;margin:7px 0 2px}.benefit small{color:var(--muted)}
+.result{max-width:1120px;margin:20px auto 0;background:#fff;border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:0 15px 40px rgba(15,18,30,.07)}.result-head{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}.eyebrow{display:inline-block;padding:7px 11px;border-radius:999px;background:#fff0f7;color:var(--pink);font-size:10px;font-weight:950;letter-spacing:.12em}.result h2{font-size:32px;margin:12px 0 5px}.muted{color:var(--muted);line-height:1.5}.score{width:145px;height:145px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--pink) calc(var(--s)*1%),#eee 0);position:relative}.score:after{content:"";position:absolute;inset:11px;background:#fff;border-radius:50%}.num{z-index:1;text-align:center}.num b{font-size:40px;display:block}.bars{display:grid;gap:10px;margin-top:22px}.barrow{display:grid;grid-template-columns:190px 1fr 45px;gap:10px;align-items:center;font-size:12px;font-weight:800}.bar{height:9px;background:#eee;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--pink),var(--gold))}
+.owner{margin-top:28px;background:#111216;color:#fff;border-radius:20px;padding:24px}.owner h3{margin-top:0}.owner p{color:#cfd0d5}.owner-grid{display:grid;grid-template-columns:1fr 220px;gap:10px}.owner button{width:100%}.copy-btn{margin-top:10px;background:#33353b}.offer{margin-top:24px;border:1px solid #f1dce6;background:#fff7fb;border-radius:18px;padding:20px}.offer h3{margin-top:0}.price{font-size:34px;font-weight:950;color:var(--pink)}
+.footer{margin-top:35px;background:#0d0e12;color:#fff;padding:32px 7%;display:flex;justify-content:space-between;align-items:center;gap:25px}.footer img{width:150px;height:100px;object-fit:contain}.footer small{color:#999}
+@media(max-width:800px){.top{grid-template-columns:1fr auto;padding:8px 16px}.nav{display:none}.brand img{width:125px;height:80px}.cta{padding:11px 14px;font-size:11px}.hero{padding:115px 22px 85px;min-height:680px}.hero h1{font-size:57px}.hero p{font-size:17px}.chips{grid-template-columns:repeat(2,1fr)}.score-card{margin:-32px 14px 0;padding:24px 18px}.input,.fields,.owner-grid{grid-template-columns:1fr}.input button{width:100%}.benefits{margin-left:14px;margin-right:14px;grid-template-columns:repeat(2,1fr);gap:15px}.benefit{border:0;border-bottom:1px solid #e8dfe4;padding-bottom:15px}.benefit:nth-child(3),.benefit:nth-child(4){border-bottom:0}.result{margin-left:14px;margin-right:14px}.result-head{grid-template-columns:1fr}.score{margin:auto}.barrow{grid-template-columns:120px 1fr 38px}.footer{display:block;text-align:center}.footer img{margin-bottom:10px}}
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18444075747"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','AW-18444075747');</script>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+<a class="brand" href="#top"><img alt="STall logo" src="https://raw.githubusercontent.com/jackkurian044-maker/stall-landing/main/assets/stall-logo-exact.jpg"></a>
+<nav class="nav"><a href="#top">Home</a><a href="#audit">How It Works</a><a href="#result">Score</a><a href="#offer">Website</a></nav>
+<a class="cta" href="#audit">Get Free Score</a>
+</header>
+<section class="hero" id="top">
+<div class="hero-copy">
+<div class="kicker">DISCOVER <b>•</b> CONNECT <b>•</b> GROW</div>
+<h1>BUSINESS<br><span>DIGITAL SCORE</span></h1>
+<p>Check how your local business appears online, find the biggest gaps, and get a practical action plan — in about 2 minutes.</p>
+<div class="chips">
+<div class="chip"><b>G</b>Google Visibility</div><div class="chip"><b>★</b>Reviews & Trust</div><div class="chip"><b>◉</b>Customer Contact</div><div class="chip"><b>⌂</b>Website Presence</div>
+</div>
+<div class="signature">Better visibility starts with knowing where you stand.</div>
+</div>
+</section>
+
+<section class="score-card" id="audit">
+<h2>Get Your Free Business Digital Score</h2>
+<p>Paste the business's Google Maps / Business Profile link. We use the current location to match the correct listing within a <strong>25 km radius</strong>.</p>
+<div class="input"><input id="profile" placeholder="Paste Google Maps / Business Profile link" autocomplete="url"><button id="check">Check Business →</button></div>
+<div class="fields"><select id="type"><option value="">Business type (optional)</option><option>Retail Store</option><option>Restaurant / Café</option><option>Salon / Beauty</option><option>Boutique / Fashion</option><option>Clinic / Healthcare</option><option>Gym / Fitness</option><option>Home / Local Services</option><option>Professional Services</option><option>Pet Business</option><option>Other Local Business</option></select><input id="ownerPhone" placeholder="Owner WhatsApp number (optional)" inputmode="tel"></div>
+<div id="status" class="status">📍 Your location is used to find the correct nearby business. Search radius: 25 km.</div>
+<div id="error" class="error hidden"></div>
+</section>
+
+<section class="benefits"><div class="benefit"><div class="big">▮▮</div><strong>Instant Report</strong><small>See the gaps quickly</small></div><div class="benefit"><div class="big">25</div><strong>KM Radius</strong><small>Local business discovery</small></div><div class="benefit"><div class="big">100%</div><strong>Free</strong><small>No charge for the score</small></div><div class="benefit"><div class="big">✦</div><strong>Actionable</strong><small>Clear next steps</small></div></section>
+
+<section id="result" class="result hidden">
+<div class="result-head"><div><span class="eyebrow">YOUR BUSINESS AUDIT</span><h2 id="name"></h2><p id="address" class="muted"></p><p id="facts" class="muted"></p><p id="distance" class="muted"></p></div><div class="score" id="circle"><div class="num"><b id="score">0</b><span>/ 100</span></div></div></div>
+<div style="margin-top:18px"><b id="grade"></b><p id="summary" class="muted"></p><p><strong>Biggest opportunity:</strong> <span id="gap"></span></p></div>
+<div id="bars" class="bars"></div>
+
+<div class="owner">
+<h3>Send the score directly to the store owner</h3>
+<p>The owner's Google business phone is prefilled when Google provides it. You can edit it before sending.</p>
+<div class="owner-grid"><input id="sendPhone" placeholder="Owner WhatsApp number" inputmode="tel"><button id="sendOwner">💬 Send Details on WhatsApp</button></div>
+<button class="copy-btn" id="copyReport">Copy Score Summary</button>
+</div>
+
+<div class="offer" id="offer">
+<h3>Want the biggest gap fixed?</h3>
+<p class="muted">We can create a professional mobile-friendly business website with your business details, photos, services/products, Google Maps, WhatsApp and call buttons.</p>
+<div class="price">₹1,000 one-time</div>
+<p class="muted">A simple website offer you can discuss with the owner immediately after sending the report.</p>
+</div>
+</section>
+
+<footer class="footer"><img alt="STall logo" src="stall-master-logo.webp"><div><strong>STall Business Digital Score</strong><br><small>Discover • Connect • Grow · © 2026 STall</small></div></footer>
+</div>
+
+<script>
+const FN='https://dhiimviybpbggvuuzwfh.supabase.co/functions/v1/public-business-audit';
+let data=null,coords=null;
+const $=id=>document.getElementById(id);
+const clean=x=>String(x||'').trim();
+function getLocation(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(new Error('Location is not supported by this browser.'));navigator.geolocation.getCurrentPosition(p=>{coords={lat:p.coords.latitude,lng:p.coords.longitude};resolve(coords)},()=>reject(new Error('Please allow location access so we can match the correct business within 25 km.')),{enableHighAccuracy:true,timeout:10000,maximumAge:300000})})}
+function grade(s){return s>=85?['Strong foundation','Your business has a solid online base. The next step is converting visibility into more enquiries.']:s>=70?['Good, with growth gaps','Your online presence is working, but a few practical gaps may be costing enquiries.']:s>=50?['Needs improvement','There are practical visibility and customer-contact gaps worth fixing.']:['High opportunity','There are important online presence gaps worth fixing.']}
+async function run(v){if(!v||v.length<8)return;$('error').classList.add('hidden');$('result').classList.add('hidden');$('check').disabled=true;$('status').textContent='📍 Getting location and matching the business within 25 km…';try{await getLocation();$('status').textContent='🔎 Checking the Google business profile…';const r=await fetch(FN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:v,lat:coords.lat,lng:coords.lng,business_type:$('type').value})});const d=await r.json();if(!r.ok)throw new Error(d?.error||'Unable to audit this business');data=d;render(d);$('status').textContent='✓ Business matched and scored.'}catch(e){$('status').textContent='';$('error').textContent=e.message;$('error').classList.remove('hidden')}finally{$('check').disabled=false}}
+function render(d){const b=d.place,a=d.audit,g=grade(a.score);$('name').textContent=b.name||'Business';$('address').textContent=b.address||'';$('facts').textContent='★ '+(b.rating?b.rating.toFixed(1):'N/A')+' · '+Number(b.reviews||0).toLocaleString()+' reviews · '+(b.website?'Website detected':'No website detected')+' · '+(b.category||'Local business');$('distance').textContent=d.location?'📍 '+d.location.distance_km+' km from your current location · 25 km search radius':'';$('score').textContent=a.score;$('circle').style.setProperty('--s',a.score);$('grade').textContent=g[0];$('summary').textContent=g[1];$('gap').textContent=a.gap;$('bars').innerHTML=a.categories.map(c=>'<div class="barrow"><span>'+c.name+'</span><div class="bar"><i style="width:'+Math.round(c.score/c.max*100)+'%"></i></div><b>'+Math.round(c.score/c.max*100)+'%</b></div>').join('');const owner=clean($('ownerPhone').value).replace(/\D/g,'');$('sendPhone').value=owner||clean(b.phone).replace(/\D/g,'');$('result').classList.remove('hidden');$('result').scrollIntoView({behavior:'smooth',block:'start'})}
+function reportText(){if(!data)return '';const b=data.place,a=data.audit;return 'STall Business Digital Score\n\nBusiness: '+b.name+'\nCategory: '+(b.category||'Local business')+'\nGoogle Score: '+a.score+'/100\nGoogle Rating: '+(b.rating||'N/A')+' ('+(b.reviews||0)+' reviews)\nWebsite: '+(b.website?'Yes':'No')+'\nBiggest opportunity: '+a.gap+'\n\nGoogle Maps: '+(b.maps_url||'')+'\n\nSTall — Business Digital Growth\nhttps://free-digital-score.stallwale.in/business-score.html'}
+$('check').addEventListener('click',()=>run(clean($('profile').value)));
+$('profile').addEventListener('paste',()=>setTimeout(()=>{const v=clean($('profile').value);if(v.length>=8)run(v)},150));
+$('ownerPhone').addEventListener('input',()=>{$('sendPhone').value=$('ownerPhone').value});
+$('sendOwner').addEventListener('click',()=>{if(!data)return;const p=clean($('sendPhone').value).replace(/\D/g,'');if(p.length<10){$('error').textContent='Please enter a valid owner WhatsApp number.';$('error').classList.remove('hidden');return}window.open('https://wa.me/'+p+'?text='+encodeURIComponent(reportText()),'_blank')});
+$('copyReport').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(reportText());$('copyReport').textContent='✓ Copied';setTimeout(()=>$('copyReport').textContent='Copy Score Summary',1600)}catch(e){$('error').textContent='Copy failed. Please select and copy the report manually.';$('error').classList.remove('hidden')}});
+</script>
+</body></html>
