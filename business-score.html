@@ -12,7 +12,7 @@
 .score-card{background:#fff;border:1px solid var(--line);border-radius:28px;padding:34px;box-shadow:0 24px 65px rgba(15,18,30,.14);max-width:1120px;margin:-42px auto 0;position:relative;z-index:5}.score-card h2{text-align:center;font-size:32px;margin:0 0 7px}.score-card>p{text-align:center;color:var(--muted);max-width:760px;margin:0 auto 22px}.input{display:grid;grid-template-columns:1fr 210px;gap:10px}input,select{width:100%;padding:16px 17px;border:1px solid #cfd2dc;border-radius:13px;font:inherit;font-size:15px;outline:none;background:#fff}input:focus,select:focus{border-color:var(--pink);box-shadow:0 0 0 4px rgba(237,10,120,.08)}button{border:0;border-radius:13px;background:var(--pink);color:#fff;padding:15px 20px;font-weight:950;cursor:pointer;box-shadow:0 10px 22px rgba(237,10,120,.2)}button:hover{background:var(--pink2)}button:disabled{opacity:.6;cursor:wait}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.status{text-align:center;color:var(--muted);font-size:12px;margin-top:12px}.error{background:#fff0f0;color:#9b1c1c;padding:12px;border-radius:10px;margin-top:12px}.hidden{display:none}
 .benefits{max-width:1120px;margin:18px auto 0;background:linear-gradient(90deg,#fff3f8,#fff);border:1px solid #f1dce6;border-radius:22px;padding:24px;display:grid;grid-template-columns:repeat(4,1fr);text-align:center}.benefit{padding:5px 14px;border-right:1px solid #e8dfe4}.benefit:last-child{border:0}.big{font-size:28px;color:var(--pink);font-weight:950}.benefit strong{display:block;margin:7px 0 2px}.benefit small{color:var(--muted)}
 .result{max-width:1120px;margin:20px auto 0;background:#fff;border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:0 15px 40px rgba(15,18,30,.07)}.result-head{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}.eyebrow{display:inline-block;padding:7px 11px;border-radius:999px;background:#fff0f7;color:var(--pink);font-size:10px;font-weight:950;letter-spacing:.12em}.result h2{font-size:32px;margin:12px 0 5px}.muted{color:var(--muted);line-height:1.5}.score{width:145px;height:145px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--pink) calc(var(--s)*1%),#eee 0);position:relative}.score:after{content:"";position:absolute;inset:11px;background:#fff;border-radius:50%}.num{z-index:1;text-align:center}.num b{font-size:40px;display:block}.bars{display:grid;gap:10px;margin-top:22px}.barrow{display:grid;grid-template-columns:190px 1fr 45px;gap:10px;align-items:center;font-size:12px;font-weight:800}.bar{height:9px;background:#eee;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--pink),var(--gold))}
-.owner{margin-top:28px;background:#111216;color:#fff;border-radius:20px;padding:24px}.owner h3{margin-top:0}.owner p{color:#cfd0d5}.owner-grid{display:grid;grid-template-columns:1fr 220px;gap:10px}.owner button{width:100%}.copy-btn{margin-top:10px;background:#33353b}.offer{margin-top:24px;border:1px solid #f1dce6;background:#fff7fb;border-radius:18px;padding:20px}.offer h3{margin-top:0}.price{font-size:34px;font-weight:950;color:var(--pink)}
+.owner{margin-top:28px;background:#111216;color:#fff;border-radius:20px;padding:24px}.owner h3{margin-top:0}.owner p{color:#cfd0d5}.owner-grid{display:grid;grid-template-columns:1fr 220px;gap:10px}.owner button{width:100%}.copy-btn{margin-top:10px;background:#33353b}.pay{min-height:48px;display:flex;justify-content:center}.pay form{margin:0}.offer{margin-top:24px;border:1px solid #f1dce6;background:#fff7fb;border-radius:18px;padding:20px}.offer h3{margin-top:0}.price{font-size:34px;font-weight:950;color:var(--pink)}
 .footer{margin-top:35px;background:#0d0e12;color:#fff;padding:32px 7%;display:flex;justify-content:space-between;align-items:center;gap:25px}.footer img{width:150px;height:100px;object-fit:contain}.footer small{color:#999}
 @media(max-width:800px){.top{grid-template-columns:1fr auto;padding:8px 16px}.nav{display:none}.brand img{width:125px;height:80px}.cta{padding:11px 14px;font-size:11px}.hero{padding:115px 22px 85px;min-height:680px}.hero h1{font-size:57px}.hero p{font-size:17px}.chips{grid-template-columns:repeat(2,1fr)}.score-card{margin:-32px 14px 0;padding:24px 18px}.input,.fields,.owner-grid{grid-template-columns:1fr}.input button{width:100%}.benefits{margin-left:14px;margin-right:14px;grid-template-columns:repeat(2,1fr);gap:15px}.benefit{border:0;border-bottom:1px solid #e8dfe4;padding-bottom:15px}.benefit:nth-child(3),.benefit:nth-child(4){border-bottom:0}.result{margin-left:14px;margin-right:14px}.result-head{grid-template-columns:1fr}.score{margin:auto}.barrow{grid-template-columns:120px 1fr 38px}.footer{display:block;text-align:center}.footer img{margin-bottom:10px}}
 </style>
@@ -72,7 +72,7 @@
 <div style="display:grid;gap:7px;font-size:12px;margin:14px 0 18px">
 <div>✓ Business profile</div><div>✓ Products / services</div><div>✓ Photos & business information</div><div>✓ WhatsApp & call buttons</div><div>✓ Google Maps location</div><div>✓ Mobile-friendly website</div>
 </div>
-<button style="width:100%" onclick="claimOffer()">Claim ₹1,000 First-10 Offer</button>
+<div class="pay"><form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TYNjrlUw56zV0u" async></script></form></div>
 </div>
 <div class="offer">
 <h3>Business Lead Machine</h3>
@@ -83,7 +83,7 @@
 <div style="display:grid;gap:7px;font-size:12px;margin:14px 0 18px">
 <div>✓ Everything in Starter</div><div>✓ Lead capture</div><div>✓ Enquiry management</div><div>✓ Customer workspace</div><div>✓ Follow-up workflow</div><div>✓ Owner dashboard</div>
 </div>
-<button style="width:100%;background:#111216" onclick="claimPlan('Business Lead Machine')">Choose Lead Machine</button>
+<div class="pay"><form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TYNaXfMKoBHgRx" async></script></form></div>
 </div>
 <div class="offer">
 <h3>Business Growth Automation</h3>
@@ -94,7 +94,7 @@
 <div style="display:grid;gap:7px;font-size:12px;margin:14px 0 18px">
 <div>✓ Everything in Lead Machine</div><div>✓ Growth automation setup</div><div>✓ Acquisition tracking</div><div>✓ Campaign-ready funnel</div><div>✓ Repeat-customer workflow</div><div>✓ Priority onboarding</div>
 </div>
-<button style="width:100%;background:#111216" onclick="claimPlan('Business Growth Automation')">Choose Growth Automation</button>
+<div class="pay"><form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TYO1q8EMSHkqPg" async></script></form></div>
 </div>
 </div>
 </section>
